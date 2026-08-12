@@ -22,12 +22,13 @@
 
 ___
 
-## 📖 Documentation 
-[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-0078FC?style=for-the-badge&logo=github)](https://is-leeroy-jenkins.github.io/Fiscal/)
-
 Fiscal is a Python library providing a framework for executing U.S. federal fiscal-year and 
 calendar-year calculations. It provides fiscal years and federal holidays with date-range analysis, 
 fiscal periods, workday calculations, work hours (FTE) and actual or observed federal-holiday handling.
+
+## 📖 Documentation 
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-0078FC?style=for-the-badge&logo=github)](https://is-leeroy-jenkins.github.io/Fiscal/)
+
 
 <a id="features"></a>
 
