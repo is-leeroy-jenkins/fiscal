@@ -15,7 +15,8 @@ strict: true
 theme:
   name: material
   language: en
-  logo: resources/images/github/fiscal-logo.png
+  icon:
+    logo: images/fiscal-logo.png
   palette:
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
@@ -43,8 +44,6 @@ theme:
     - search.share
     - search.suggest
     - toc.follow
-  icon:
-    repo: fontawesome/brands/github
 
 nav:
   - Home: index.md
