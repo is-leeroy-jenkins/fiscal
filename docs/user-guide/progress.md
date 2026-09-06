@@ -1,6 +1,13 @@
 # Calendar and Fiscal Progress
 
-Fiscal uses `datetime.today().date()` to initialize the current calculation date.
+Fiscal uses `datetime.today().date()` to initialize the current calculation date unless the caller
+provides an explicit date. Use an explicit date for tests, reports, and reproducible analysis:
+
+```python
+from fiscal import FiscalYear
+
+fy = FiscalYear( 2026, current_date="2026-07-15" )
+```
 
 ## Calendar Progress
 

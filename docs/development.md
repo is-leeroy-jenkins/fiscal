@@ -9,19 +9,19 @@ python -m venv .venv
 Activate the environment and install project requirements:
 
 ```bash
-pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
 
 ## Format Source
 
 ```bash
-black fiscal
+black fiscal tests
 ```
 
 ## Validate Python
 
 ```bash
-python -m py_compile fiscal/fiscal.py
+python -m compileall -q fiscal
 ```
 
 ## Build Documentation
@@ -40,7 +40,13 @@ Open the local address shown by MkDocs, normally `http://127.0.0.1:8000/`.
 
 ## Test Coverage
 
-Tests should cover:
+Run the automated suite:
+
+```bash
+pytest
+```
+
+The suite covers:
 
 - constructors and database queries
 - every public method
@@ -52,13 +58,15 @@ Tests should cover:
 - reversed and nonintersecting ranges
 - text and HTML calendar rendering
 - date ranges crossing calendar years
+- OMB regular and pay-period FTE denominators
+- every annual database denominator against a calendar-derived value
 
 ## Release Validation
 
 Before release:
 
 ```bash
-python -m py_compile fiscal/fiscal.py
+python -m compileall -q fiscal
 pytest
 mkdocs build --strict
 ```

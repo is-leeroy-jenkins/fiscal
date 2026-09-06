@@ -1,6 +1,6 @@
 # Fiscal User Guide
 
-Fiscal provides fiscal-year, calendar-year, federal-holiday, workday, and weekend calculations for use in Python applications and ad-hoc analysis.
+Fiscal provides fiscal-year, calendar-year, federal-holiday, workday, weekend, and civilian FTE calculations for use in Python applications and ad-hoc analysis.
 
 This guide focuses on common user workflows. Database configuration, schemas, and internal query behavior are covered in the Developer Guide.
 
@@ -15,7 +15,7 @@ pip install fiscal
 ```python
 from datetime import date
 
-from fiscal import FederalHoliday, FiscalYear
+from fiscal import FederalHoliday, FiscalYear, FullTimeEquivalent
 ```
 
 ## Analyze a Fiscal Year
@@ -96,6 +96,28 @@ print( fy.compensable_days )
 print( fy.compensable_workdays )
 print( fy.compensable_hours )
 ```
+
+## Calculate Full-Time Equivalents
+
+OMB's regular method divides fiscal-year regular straight-time hours by the compensable hours for
+that fiscal year. The pay-period method divides qualifying hours from the selected 26 biweekly pay
+periods by 2,080.
+
+```python
+fte = FullTimeEquivalent( 2026 )
+
+print( fte.compensable_days )
+print( fte.compensable_hours )
+print( fte.regular_method( 1044 ) )
+print( fte.pay_period_method( 1040 ) )
+```
+
+Include annual leave, sick leave, compensatory time off, and other approved leave in the numerator.
+Exclude overtime, holiday hours worked, and terminal leave. If 27 pay periods end in the fiscal year,
+omit the period with the fewest workdays in that fiscal year before passing the 26-period total.
+
+See the MkDocs [FTE guide](../docs/user-guide/full-time-equivalents.md) for formulas, reporting
+boundaries, and primary federal references.
 
 ## Analyze a Date Range
 

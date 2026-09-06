@@ -13,5 +13,6 @@ The User Guide is organized around tasks performed with Fiscal.
 - [Inspect federal holidays](federal-holidays.md)
 - [Analyze date ranges](date-ranges.md)
 - [Calculate workdays and weekends](workdays-and-weekends.md)
+- [Calculate full-time equivalents](full-time-equivalents.md)
 - [Generate text and HTML calendars](calendar-rendering.md)
 - [Export results](data-exports.md)
