@@ -81,7 +81,7 @@ class FullTimeEquivalent( ):
 			raise ValueError( 'Hours per day must be greater than zero.' )
 		self.start_date: date = date( fiscal_year - 1, 10, 1 )
 		self.end_date: date = date( fiscal_year, 9, 30 )
-		self.compensable_days: int = self._count_weekdays( )
+		self.compensable_days: int = self.count_weekdays( )
 		self.compensable_hours: Decimal = Decimal( self.compensable_days ) * self.hours_per_day
 		self.method: str = ''
 		self.regular_hours: Decimal = Decimal( '0' )
@@ -107,7 +107,7 @@ class FullTimeEquivalent( ):
 			ValueError: ``regular_hours`` is empty or negative.
 			TypeError: ``regular_hours`` is Boolean or not numeric.
 		"""
-		hours = self._nonnegative_hours( regular_hours )
+		hours = self.nonnegative_hours( regular_hours )
 		self.method = 'regular'
 		self.regular_hours = hours
 		self.fte = hours / self.compensable_hours
@@ -133,7 +133,7 @@ class FullTimeEquivalent( ):
 			ValueError: ``selected_regular_hours`` is empty or negative.
 			TypeError: ``selected_regular_hours`` is Boolean or not numeric.
 		"""
-		hours = self._nonnegative_hours( selected_regular_hours,
+		hours = self.nonnegative_hours( selected_regular_hours,
 			name='selected_regular_hours' )
 		self.method = 'pay_period'
 		self.regular_hours = hours
@@ -157,7 +157,7 @@ class FullTimeEquivalent( ):
 			ValueError: ``fte`` is empty or negative.
 			TypeError: ``fte`` is Boolean or not numeric.
 		"""
-		fte_value = self._nonnegative_decimal( 'fte', fte )
+		fte_value = self.nonnegative_decimal( 'fte', fte )
 		return fte_value * self.compensable_hours
 
 	def hours_for_pay_period_fte( self, fte: int | float | Decimal ) -> Decimal:
@@ -177,7 +177,7 @@ class FullTimeEquivalent( ):
 			ValueError: ``fte`` is empty or negative.
 			TypeError: ``fte`` is Boolean or not numeric.
 		"""
-		fte_value = self._nonnegative_decimal( 'fte', fte )
+		fte_value = self.nonnegative_decimal( 'fte', fte )
 		return fte_value * self.PAY_PERIOD_COMPENSABLE_HOURS
 
 	def to_dict( self ) -> Dict[ str, object ]:
@@ -204,7 +204,7 @@ class FullTimeEquivalent( ):
 			'fte': str( self.fte ),
 		}
 
-	def _count_weekdays( self ) -> int:
+	def count_weekdays( self ) -> int:
 		"""Count Monday-through-Friday days in the fiscal-year date range.
 
 		Returns:
@@ -215,7 +215,7 @@ class FullTimeEquivalent( ):
 			if (self.start_date + timedelta( days=offset )).weekday( ) < 5 )
 
 	@classmethod
-	def _nonnegative_decimal( cls, name: str,
+	def nonnegative_decimal( cls, name: str,
 		value: int | float | Decimal ) -> Decimal:
 		"""Validate and normalize a nonnegative decimal argument.
 
@@ -236,7 +236,7 @@ class FullTimeEquivalent( ):
 		return decimal_value
 
 	@classmethod
-	def _nonnegative_hours( cls, value: int | float | Decimal,
+	def nonnegative_hours( cls, value: int | float | Decimal,
 		name: str='regular_hours' ) -> Decimal:
 		"""Validate and normalize an hours argument.
 
@@ -251,4 +251,4 @@ class FullTimeEquivalent( ):
 			ValueError: The value is empty, non-finite, or negative.
 			TypeError: The value is Boolean or not numeric.
 		"""
-		return cls._nonnegative_decimal( name, value )
+		return cls.nonnegative_decimal( name, value )

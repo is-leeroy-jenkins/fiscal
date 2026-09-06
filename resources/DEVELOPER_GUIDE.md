@@ -276,7 +276,7 @@ The fiscal-year database record and the calculation date are independent. A date
 
 ## Fiscal Range Contract
 
-`_fiscal_range()` is the common range-validation path used by:
+`fiscal_range()` is the common range-validation path used by:
 
 - `count_weekends()`
 - `count_holidays()`
@@ -625,7 +625,7 @@ When adding functionality:
 1. Preserve existing public members and compatibility aliases.
 2. Accept domain-friendly inputs rather than exposing standard-library constants.
 3. Use `current_date` for reproducible date-dependent calculations.
-4. Route fiscal range operations through `_fiscal_range()`.
+4. Route fiscal range operations through `fiscal_range()`.
 5. Return native `date` values in new domain APIs.
 6. Preserve string-returning methods only where compatibility requires them.
 7. Use `throw_if()` for required arguments.
@@ -673,4 +673,4 @@ date_range_html_calendar(
 ) -> str
 ```
 
-Both methods route dates through `_fiscal_range()`, reject reversed or nonintersecting ranges, clamp intersecting ranges to the represented fiscal year, and render each intersecting month chronologically. The boundary months remain complete month calendars.
+Both methods route dates through `fiscal_range()`, reject reversed or nonintersecting ranges, clamp intersecting ranges to the represented fiscal year, and render each intersecting month chronologically. The boundary months remain complete month calendars.

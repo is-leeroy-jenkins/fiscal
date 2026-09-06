@@ -403,7 +403,7 @@ class FiscalYear( DB ):
 			'holidays_remaining', 'workdays_remaining', 'weekends_remaining', 'contains_leap_day',
 			'leap_days_in_availability', 'current_weekday_name', 'count_weekends',
 			'count_holidays',
-			'count_workdays', 'compensable_hours_between', 'work_hours_between', 'fiscal_bounds',
+			'count_workdays', 'compensable_hours_between', 'work_hours_between', 'fiscal_range', 'fiscal_bounds',
 			'is_fiscal_start_year', 'is_fiscal_end_year',
 			'is_calendar_start_year', 'is_calendar_end_date', 'to_dict' ]
 	
@@ -720,7 +720,7 @@ class FiscalYear( DB ):
 			ex.method = 'fiscal_percent_elapsed( self ) -> float'
 			raise ex
 	
-	def _fiscal_range( self, start: date | datetime, end: date | datetime ) -> Tuple[ date, date ]:
+	def fiscal_range( self, start: date | datetime, end: date | datetime ) -> Tuple[ date, date ]:
 		"""Validate and constrain an inclusive range to the represented fiscal period.
 
 		Purpose:
@@ -774,7 +774,7 @@ class FiscalYear( DB ):
 			Error: Range validation, conversion, or iteration fails; the original exception is retained.
 		"""
 		try:
-			range_start, range_end = self._fiscal_range( start, end )
+			range_start, range_end = self.fiscal_range( start, end )
 			self.range_start = range_start
 			self.range_end = range_end
 			count = 0
@@ -860,7 +860,7 @@ class FiscalYear( DB ):
 			Error: Range validation or holiday-row retrieval fails.
 		"""
 		try:
-			range_start, range_end = self._fiscal_range( start, end )
+			range_start, range_end = self.fiscal_range( start, end )
 			self.range_start = range_start
 			self.range_end = range_end
 			self.use_observed = use_observed
@@ -899,7 +899,7 @@ class FiscalYear( DB ):
 			Error: Range validation, holiday-row retrieval, or date iteration fails.
 		"""
 		try:
-			range_start, range_end = self._fiscal_range( start, end )
+			range_start, range_end = self.fiscal_range( start, end )
 			self.range_start = range_start
 			self.range_end = range_end
 			self.use_observed = use_observed
@@ -945,7 +945,7 @@ class FiscalYear( DB ):
 				or ``hours_per_day`` is empty, nonnumeric, non-finite, or not positive.
 		"""
 		try:
-			range_start, range_end = self._fiscal_range( start, end )
+			range_start, range_end = self.fiscal_range( start, end )
 			day_hours = to_decimal( 'hours_per_day', hours_per_day )
 			if day_hours <= 0:
 				raise ValueError( 'Hours per day must be greater than zero.' )
@@ -1386,7 +1386,7 @@ class FiscalYear( DB ):
 			Error: The date range is invalid or the text calendars cannot be rendered.
 		"""
 		try:
-			range_start, range_end = self._fiscal_range( start, end )
+			range_start, range_end = self.fiscal_range( start, end )
 			text_calendar = calendar.TextCalendar( firstweekday=calendar.MONDAY )
 			year = range_start.year
 			month = range_start.month
@@ -1435,7 +1435,7 @@ class FiscalYear( DB ):
 				raise TypeError( 'Width must be an integer.' )
 			if width < 1 or width > 12:
 				raise ValueError( 'Width must be between 1 and 12.' )
-			range_start, range_end = self._fiscal_range( start, end )
+			range_start, range_end = self.fiscal_range( start, end )
 			html_calendar = calendar.HTMLCalendar( firstweekday=calendar.MONDAY )
 			year = range_start.year
 			month = range_start.month
@@ -2151,7 +2151,7 @@ class FiscalYear( DB ):
 			Error: Range validation, holiday-row retrieval, or date comparison fails.
 		"""
 		try:
-			range_start, range_end = self._fiscal_range( start, end )
+			range_start, range_end = self.fiscal_range( start, end )
 			self.range_start = range_start
 			self.range_end = range_end
 			self.use_observed = use_observed
