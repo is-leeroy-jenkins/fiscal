@@ -102,7 +102,7 @@ LOG_PATH=/path/to/Exceptions.db
 
 <a id="quick-start"></a>
 
-![]()
+![](https://github.com/is-leeroy-jenkins/fiscal/blob/master/docs/images/fiscal-workflow.png)
 
 ___
 
