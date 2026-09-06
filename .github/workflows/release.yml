@@ -7,7 +7,7 @@ on:
 
 jobs:
   publish:
-    name: Publish fiscal-py
+    name: Publish fiscal-pi
     runs-on: ubuntu-latest
     environment: pypi
     permissions:

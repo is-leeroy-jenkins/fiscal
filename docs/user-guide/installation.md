@@ -3,7 +3,7 @@
 ## Install the Package
 
 ```bash
-pip install fiscal-py
+pip install fiscal-pi
 ```
 
 The distribution name avoids a collision with the unrelated `fiscal` project already registered on

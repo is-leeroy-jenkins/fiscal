@@ -3,7 +3,7 @@ requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "fiscal-py"
+name = "fiscal-pi"
 version = "0.1.0"
 description = "U.S. federal fiscal-year, holiday, workday, and FTE calculations."
 readme = "README.md"

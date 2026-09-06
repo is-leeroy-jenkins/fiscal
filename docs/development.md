@@ -64,7 +64,7 @@ The suite covers:
 
 ## Publish a Release
 
-The PyPI distribution is named `fiscal-py`, while its import package remains `fiscal`. GitHub releases
+The PyPI distribution is named `fiscal-pi`, while its import package remains `fiscal`. GitHub releases
 invoke `.github/workflows/release.yml`, which builds the source and wheel distributions and publishes
 them through PyPI Trusted Publishing.
 

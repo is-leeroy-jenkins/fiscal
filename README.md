@@ -66,11 +66,11 @@ federal-holiday handling.
 
 ```bash
 
-pip install fiscal-py
+pip install fiscal-pi
 
 ```
 
-The PyPI distribution is named `fiscal-py`; the installed Python package remains `fiscal`:
+The PyPI distribution is named `fiscal-pi`; the installed Python package remains `fiscal`:
 
 ```python
 

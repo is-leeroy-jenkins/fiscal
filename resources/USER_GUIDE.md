@@ -9,10 +9,10 @@ This guide focuses on common user workflows. Database configuration, schemas, an
 ## Installation
 
 ```bash
-pip install fiscal-py
+pip install fiscal-pi
 ```
 
-The distribution name is `fiscal-py`; the Python import package remains `fiscal`.
+The distribution name is `fiscal-pi`; the Python import package remains `fiscal`.
 
 ## Import Fiscal
 

@@ -25,7 +25,7 @@ Fiscal supports applications that need to:
 ## Installation
 
 ```bash
-pip install fiscal-py
+pip install fiscal-pi
 ```
 
 ## Quick Start
