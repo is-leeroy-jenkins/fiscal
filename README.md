@@ -437,6 +437,10 @@ print( holidays.is_weekend( date( 2026, 7, 4 ) ) )
 
 <a id="api-overview"></a>
 
+![](https://github.com/is-leeroy-jenkins/fiscal/blob/master/docs/images/fiscal-classmap.png)
+
+___
+
 ## 🧠 API Overview
 
 ```python
