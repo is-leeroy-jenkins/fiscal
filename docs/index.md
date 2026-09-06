@@ -14,6 +14,7 @@ Fiscal supports applications that need to:
 - calculate calendar-year and fiscal-year progress
 - resolve fiscal-month, fiscal-quarter, and fiscal-week boundaries
 - count weekdays, weekends, workdays, and holidays
+- calculate compensable hours and holiday-adjusted work hours between dates
 - calculate civilian FTEs using either OMB method
 - generate text and HTML calendars
 - render calendars for fiscal months, fiscal years, and date ranges
@@ -22,7 +23,7 @@ Fiscal supports applications that need to:
 ## Installation
 
 ```bash
-pip install fiscal
+pip install fiscal-py
 ```
 
 ## Quick Start
@@ -46,6 +47,16 @@ workdays = fy.count_workdays(
 )
 
 print( workdays )
+
+compensable_hours = fy.compensable_hours_between(
+    start=date( 2026, 7, 1 ),
+    end=date( 2026, 7, 31 ),
+)
+
+work_hours = fy.work_hours_between(
+    start=date( 2026, 7, 1 ),
+    end=date( 2026, 7, 31 ),
+)
 
 fte = FullTimeEquivalent( 2026 )
 print( fte.regular_method( 1044 ) )

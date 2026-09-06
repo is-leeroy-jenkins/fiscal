@@ -17,6 +17,24 @@ actual_date_workdays = fy.fiscal_workdays(
 )
 ```
 
+## Date-Range Hours
+
+```python
+compensable_hours = fy.compensable_hours_between(
+    start=start_date,
+    end=end_date,
+)
+
+work_hours = fy.work_hours_between(
+    start=start_date,
+    end=end_date,
+)
+```
+
+Compensable hours include all Monday-through-Friday dates, including holidays. Work hours exclude
+observed holidays by default. Pass `use_observed=False` to `work_hours_between()` to exclude statutory
+holiday dates instead.
+
 ## Monthly Counts
 
 ```python

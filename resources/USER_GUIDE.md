@@ -7,8 +7,10 @@ This guide focuses on common user workflows. Database configuration, schemas, an
 ## Installation
 
 ```bash
-pip install fiscal
+pip install fiscal-py
 ```
+
+The distribution name is `fiscal-py`; the Python import package remains `fiscal`.
 
 ## Import Fiscal
 
@@ -140,6 +142,14 @@ summary = {
         start=start_date,
         end=end_date,
     ),
+    "CompensableHours": fy.compensable_hours_between(
+        start=start_date,
+        end=end_date,
+    ),
+    "WorkHours": fy.work_hours_between(
+        start=start_date,
+        end=end_date,
+    ),
 }
 
 print( summary )
@@ -160,6 +170,11 @@ actual_workday_count = fy.count_workdays(
     use_observed=False,
 )
 ```
+
+`compensable_hours_between()` counts every Monday-through-Friday date, including holidays, for an
+OMB-consistent partial-period denominator. `work_hours_between()` excludes holidays and returns
+scheduled operational hours. Both default to eight hours per day, accept an alternate positive
+`hours_per_day`, and return `Decimal`.
 
 A reversed range or a range that does not intersect the fiscal year raises `boogr.Error`.
 

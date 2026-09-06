@@ -24,7 +24,8 @@ ___
 
 Fiscal is a Python library providing a framework for executing U.S. federal fiscal-year and 
 calendar-year calculations. It provides fiscal years and federal holidays with date-range analysis, 
-fiscal periods, workday calculations, work hours (FTE) and actual or observed federal-holiday handling.
+fiscal periods, workday and work-hour calculations, FTE calculations, and actual or observed
+federal-holiday handling.
 
 ## 📖 Documentation 
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-0078FC?style=for-the-badge&logo=github)](https://is-leeroy-jenkins.github.io/Fiscal/)
@@ -48,6 +49,7 @@ fiscal periods, workday calculations, work hours (FTE) and actual or observed fe
 - Monthly weekday, weekend, workday, and holiday summaries
 - Actual and observed federal-holiday dates
 - Inclusive date-range counts constrained to the represented fiscal year
+- Compensable-hour and federal work-hour calculations for inclusive date ranges
 - Holiday range results as native `date` values or ISO strings
 - Remaining holiday, workday, and weekend counts
 - OMB regular-method and pay-period-method civilian FTE calculations
@@ -63,7 +65,15 @@ fiscal periods, workday calculations, work hours (FTE) and actual or observed fe
 
 ```bash
 
-pip install fiscal
+pip install fiscal-py
+
+```
+
+The PyPI distribution is named `fiscal-py`; the installed Python package remains `fiscal`:
+
+```python
+
+import fiscal
 
 ```
 
@@ -300,11 +310,34 @@ summary = {
         start=start_date,
         end=end_date,
     ),
+    "CompensableHours": fy.compensable_hours_between(
+        start=start_date,
+        end=end_date,
+    ),
+    "WorkHours": fy.work_hours_between(
+        start=start_date,
+        end=end_date,
+    ),
 }
 
 ```
 
 Range operations are inclusive and constrained to the represented fiscal year. A reversed range or a range that does not intersect the fiscal year raises `boogr.Error`.
+
+`compensable_hours_between()` counts every Monday-through-Friday date, including federal holidays,
+consistent with OMB's regular-method denominator. `work_hours_between()` excludes federal holidays
+and therefore represents scheduled operational work hours. Both methods accept a positive
+`hours_per_day` value and return an exact `Decimal` result.
+
+```python
+
+part_time_hours = fy.work_hours_between(
+    start=start_date,
+    end=end_date,
+    hours_per_day=6,
+)
+
+```
 
 Use actual holiday dates instead of observed dates:
 
@@ -455,6 +488,8 @@ FiscalYear(
 - `count_weekends(start, end)`
 - `count_holidays(start, end, use_observed=True)`
 - `count_workdays(start, end, use_observed=True)`
+- `compensable_hours_between(start, end, hours_per_day=8)`
+- `work_hours_between(start, end, hours_per_day=8, use_observed=True)`
 - `holiday_dates_between(start, end, use_observed=True)`
 - `holidays_between(start, end, use_observed=True)`
 - `fiscal_dates()`
@@ -486,6 +521,7 @@ FiscalYear(
 
 - `throw_if(name, value)`
 - `to_date(value)`
+- `to_decimal(name, value)`
 
 `to_date()` accepts `date`, `datetime`, `YYYY-MM-DD`, `MM/DD/YYYY`, and `MM/DD/YY`. Database sentinel values resolve to `None`.
 

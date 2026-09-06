@@ -11,6 +11,7 @@ The API reference is generated from the package docstrings with mkdocstrings.
 - `FullTimeEquivalent`
 - `throw_if()`
 - `to_date()`
+- `to_decimal()`
 - `weekday_number()`
 
 Open the [Fiscal module reference](fiscal.md) or the dedicated

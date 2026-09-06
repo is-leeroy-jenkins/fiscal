@@ -60,6 +60,20 @@ The suite covers:
 - date ranges crossing calendar years
 - OMB regular and pay-period FTE denominators
 - every annual database denominator against a calendar-derived value
+- partial-period compensable hours and holiday-adjusted work hours
+
+## Publish a Release
+
+The PyPI distribution is named `fiscal-py`, while its import package remains `fiscal`. GitHub releases
+invoke `.github/workflows/release.yml`, which builds the source and wheel distributions and publishes
+them through PyPI Trusted Publishing.
+
+Configure the PyPI publisher with:
+
+- owner: `is-leeroy-jenkins`
+- repository: `fiscal`
+- workflow: `release.yml`
+- environment: `pypi`
 
 ## Release Validation
 
