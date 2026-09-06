@@ -1,9 +1,9 @@
 site_name: Fiscal
-site_description: U.S. federal fiscal-year, calendar-year, federal-holiday, workday, weekend, and calendar-rendering tools for Python.
+site_description: U.S. federal fiscal-year, holiday, compensable-hour, work-hour, FTE, and calendar tools for Python.
 site_author: Terry D. Eppler
-site_url: https://is-leeroy-jenkins.github.io/Fiscal/
+site_url: https://is-leeroy-jenkins.github.io/fiscal/
 repo_name: is-leeroy-jenkins/Fiscal
-repo_url: https://github.com/is-leeroy-jenkins/Fiscal
+repo_url: https://github.com/is-leeroy-jenkins/fiscal
 edit_uri: edit/master/docs/
 copyright: Copyright &copy; 2022 Terry D. Eppler
 
@@ -15,6 +15,7 @@ strict: true
 theme:
   name: material
   language: en
+  logo: resources/images/github/fiscal-logo.png
   palette:
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
