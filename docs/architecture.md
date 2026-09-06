@@ -1,4 +1,6 @@
-# Architecture
+![](images/fiscal-architecture.png)
+
+___
 
 ## Overview
 
@@ -14,6 +16,9 @@ date-normalization helpers live in `fiscal.utilities`, while the FTE model is is
 `fiscal.fte` because it has no database dependency.
 
 ## Data Flow
+![](images/fiscal-workflow.png)
+
+___
 
 | Component | Input | Responsibility |
 | --- | --- | --- |

@@ -1,6 +1,8 @@
-# User Guide
+![](../images/fiscal-userguide.png)
 
-The User Guide is organized around tasks performed with Fiscal.
+___
+
+This User Guide is organized around tasks performed with Fiscal.
 
 ## Core Workflows
 

@@ -102,6 +102,10 @@ LOG_PATH=/path/to/Exceptions.db
 
 <a id="quick-start"></a>
 
+![]()
+
+___
+
 ## 🎯 Quick Start
 
 ```python
