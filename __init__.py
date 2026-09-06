@@ -189,7 +189,16 @@ class DB( ):
 		self.tables = cfg.TABLES
 	
 	def __dir__( self ) -> List[ str ]:
-		"""Return public database members."""
+		"""List the database members intentionally exposed for interactive discovery.
+
+		Purpose:
+			Restricts ``dir(instance)`` to the connection settings, current query result, and
+			parameterized retrieval operations that form the supported database interface. Internal
+			query bookkeeping and inherited implementation details are intentionally omitted.
+
+		Returns:
+			List[str]: Stable public member names presented by ``dir`` and interactive IDE tooling.
+		"""
 		return [ 'path', 'tables', 'name', 'data', 'create_connection', 'query_year',
 			'query_holiday' ]
 	
@@ -197,13 +206,17 @@ class DB( ):
 		"""Create a SQLite database connection.
 
 		Purpose:
-			Opens the SQLite database configured by ``cfg.DB_PATH``.
+			Opens the SQLite database configured by ``cfg.DB_PATH``. A new connection is returned for
+			each call; callers own the connection lifecycle and should close it directly or use it as
+			a context manager.
 
 		Returns:
-			sqlite3.Connection: Value produced by the operation.
+			sqlite3.Connection: Open connection to the configured fiscal database.
 
 		Raises:
-			Error: The operation fails and the underlying exception is wrapped."""
+			Error: SQLite cannot open the configured path. The original exception and traceback are
+				retained by the wrapper.
+		"""
 		try:
 			return sqlite3.connect( self.path )
 		except Exception as e:
@@ -217,20 +230,25 @@ class DB( ):
 		"""Query one fiscal-year row.
 
 		Purpose:
-			Retrieves the ``BudgetFiscalYears`` row matching the supplied fiscal year and period
-			        of availability values.
+			Executes a parameterized equality query against an approved table for one fiscal-year
+			and period-of-availability combination. The table identifier is validated against
+			``cfg.TABLES`` before it is interpolated; all row filters are passed as SQL parameters.
+			Exactly one matching row is required.
 
 		Args:
-			name (str): Value used by the operation.
-			fy (str): Value used by the operation.
-			bpoa (str): Value used by the operation.
-			epoa (str): Value used by the operation.
+			name (str): Approved table name, normally ``BudgetFiscalYears``.
+			fy (str): Fiscal-year identifier stored in the ``FiscalYear`` column.
+			bpoa (str): Beginning period-of-availability value stored in ``BPOA``.
+			epoa (str): Ending period-of-availability value stored in ``EPOA``.
 
 		Returns:
-			pd.DataFrame: Value produced by the operation.
+			pd.DataFrame: Defensive copy containing the single matching database row and every
+				column returned by the table.
 
 		Raises:
-			Error: The operation fails and the underlying exception is wrapped."""
+			Error: An argument is empty, the table is not approved, the query does not return exactly
+				one row, or SQLite/pandas cannot execute the query. The original exception is retained.
+		"""
 		try:
 			throw_if( 'name', name )
 			throw_if( 'fy', fy )
@@ -260,17 +278,22 @@ class DB( ):
 		"""Query one federal-holiday row.
 
 		Purpose:
-			Retrieves the ``FederalHolidays`` row matching the supplied fiscal year.
+			Executes a parameterized fiscal-year lookup against an approved table. The table identifier
+			is validated against ``cfg.TABLES`` before interpolation and the fiscal year is supplied as
+			a SQL parameter. Exactly one matching holiday row is required.
 
 		Args:
-			name (str): Value used by the operation.
-			fy (str): Value used by the operation.
+			name (str): Approved table name, normally ``FederalHolidays``.
+			fy (str): Fiscal-year identifier stored in the ``FiscalYear`` column.
 
 		Returns:
-			pd.DataFrame: Value produced by the operation.
+			pd.DataFrame: Defensive copy containing the single matching holiday row and every
+				column returned by the table.
 
 		Raises:
-			Error: The operation fails and the underlying exception is wrapped."""
+			Error: An argument is empty, the table is not approved, the query does not return exactly
+				one row, or SQLite/pandas cannot execute the query. The original exception is retained.
+		"""
 		try:
 			throw_if( 'name', name )
 			throw_if( 'fy', fy )
@@ -296,12 +319,16 @@ class FiscalYear( DB ):
 	"""Budget fiscal-year database entity.
 
 	Purpose:
-		Maps one ``BudgetFiscalYears`` database row to typed properties and provides calendar-year,
-		fiscal-year, holiday, weekend, and workday calculations derived from that row and the
-		current calculation date.
+		Maps one ``BudgetFiscalYears`` database row to typed appropriation and calendar properties.
+		The entity combines persisted period-of-availability boundaries and workload measures with
+		runtime calendar calculations based on the system date captured during construction. It also
+		provides fiscal months, quarters, seven-day fiscal weeks, federal holidays, workdays, range
+		counts, text/HTML calendars, and database-compatible exports. Unless a method states otherwise,
+		date ranges include both boundaries and fiscal months follow the October-through-September
+		federal sequence.
 
 	Attributes:
-		holidays (List[ Dict[ str str ] ]):  List of holidays for a given fiscal year
+		holidays (List[Dict[str, str]]): Holiday database columns represented as one-item mappings.
 		range_start (date | None): Normalized start date assigned by range-counting methods.
 		range_end (date | None): Normalized end date assigned by range-counting methods.
 		use_observed (bool): Indicates whether observed holiday dates are used.
@@ -355,8 +382,11 @@ class FiscalYear( DB ):
 		"""Initialize a budget fiscal-year entity.
 
 		Purpose:
-			Retrieves one fiscal-year record and initializes calendar calculations using the
-			current system date returned by ``datetime.today().date()``.
+			Normalizes the fiscal-year and period-of-availability identifiers to strings, substitutes
+			``fy`` for an omitted ``bpoa`` or ``epoa``, and requires exactly one matching
+			``BudgetFiscalYears`` row. Database columns are converted to native numeric and date members.
+			The system date returned by ``datetime.today().date()`` is then captured for all current-date
+			calendar and fiscal progress calculations.
 
 		Args:
 			fy (str | int): Fiscal year used to retrieve the database row.
@@ -365,6 +395,12 @@ class FiscalYear( DB ):
 
 		Returns:
 			None: Initialization does not return a value.
+
+		Raises:
+			ValueError: ``fy`` is empty or a retrieved field cannot be converted.
+			Error: Table validation, database access, or exact-row retrieval fails.
+			KeyError: A required ``BudgetFiscalYears`` column is missing.
+			IndexError: The configured fiscal-year table is unavailable.
 		"""
 		super( ).__init__( )
 		throw_if( 'fy', fy )
@@ -399,10 +435,12 @@ class FiscalYear( DB ):
 		"""Return the fiscal-year identifier.
 
 		Purpose:
-			Return the fiscal-year identifier.
+			Provides the database fiscal-year identifier as the concise developer representation used
+			by logs, debuggers, containers, and interactive sessions.
 
 		Returns:
-			str: Value produced by the operation."""
+			str: Fiscal year loaded from the ``BudgetFiscalYears`` row.
+		"""
 		return self.fiscal_year
 	
 	def __dir__( self ) -> List[ str ]:
@@ -451,9 +489,9 @@ class FiscalYear( DB ):
 			holiday name and its corresponding value.
 	
 		Returns:
-			List[Dict[str, str]]: Federal holiday column names and values for the current fiscal
-			year.
-				Each item contains ``ColumnName`` and ``ColumnValue`` keys.
+			List[Dict[str, str]]: Ordered one-item mappings whose key is the holiday database column and
+				whose value is its stored text representation. SQL null values become empty strings; ``ID``
+				and ``FiscalYear`` are excluded.
 	
 		Raises:
 			Error: The FederalHolidays row cannot be queried or converted.
@@ -479,10 +517,12 @@ class FiscalYear( DB ):
 		"""Return the one-based calendar day-of-year index.
 
 		Purpose:
-			Return the one-based calendar day-of-year index.
+			Measures the calculation date from January 1 of ``calendar_year`` and converts the
+			zero-based date difference to an ordinal. January 1 is day 1 and December 31 is day 365
+			or 366.
 
 		Returns:
-			int: Value produced by the operation.
+			int: One-based ordinal of ``current_date`` within its calendar year.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -499,10 +539,11 @@ class FiscalYear( DB ):
 		"""Return elapsed calendar-year days.
 
 		Purpose:
-			Return elapsed calendar-year days.
+			Counts complete days between January 1 and ``current_date``. The current date is excluded,
+			so January 1 returns zero. Negative differences are clamped to zero.
 
 		Returns:
-			int: Value produced by the operation.
+			int: Number of complete calendar-year days elapsed before ``current_date``.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -519,10 +560,11 @@ class FiscalYear( DB ):
 		"""Return remaining calendar-year days.
 
 		Purpose:
-			Return remaining calendar-year days.
+			Counts complete days between ``current_date`` and December 31. The current date is excluded,
+			so December 31 returns zero. Negative differences are clamped to zero.
 
 		Returns:
-			int: Value produced by the operation.
+			int: Number of calendar-year days remaining after ``current_date``.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -539,10 +581,12 @@ class FiscalYear( DB ):
 		"""Return elapsed calendar-year months.
 
 		Purpose:
-			Return elapsed calendar-year months.
+			Counts complete calendar months preceding the month containing ``current_date``. January
+			returns zero and December returns eleven; partial progress within the current month is not
+			included.
 
 		Returns:
-			int: Value produced by the operation.
+			int: Number of complete months elapsed before the current calendar month.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -559,10 +603,11 @@ class FiscalYear( DB ):
 		"""Return remaining calendar-year months.
 
 		Purpose:
-			Return remaining calendar-year months.
+			Counts complete calendar months following the month containing ``current_date``. January
+			returns eleven and December returns zero; the current month is not included.
 
 		Returns:
-			int: Value produced by the operation.
+			int: Number of complete months remaining after the current calendar month.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -579,10 +624,12 @@ class FiscalYear( DB ):
 		"""Return the elapsed calendar-year percentage.
 
 		Purpose:
-			Return the elapsed calendar-year percentage.
+			Divides complete days elapsed before ``current_date`` by the inclusive number of days in
+			``calendar_year`` and multiplies by 100. Because the current date is excluded, the result is
+			zero on January 1 and remains below 100 on December 31.
 
 		Returns:
-			float: Value produced by the operation.
+			float: Unrounded calendar-year completion percentage on a 0-to-100 scale.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -599,10 +646,12 @@ class FiscalYear( DB ):
 		"""Return the one-based fiscal day-of-year index.
 
 		Purpose:
-			Return the one-based fiscal day-of-year index.
+			Measures ``current_date`` from the row's ``start_date`` and converts the zero-based date
+			difference to an ordinal. A date equal to ``start_date`` returns one. Dates outside the
+			represented period are not clamped.
 
 		Returns:
-			int: Value produced by the operation.
+			int: One-based day offset of ``current_date`` relative to ``start_date``.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -619,10 +668,11 @@ class FiscalYear( DB ):
 		"""Return the federal fiscal-month number.
 
 		Purpose:
-			Return the federal fiscal-month number.
+			Maps the calendar month containing ``current_date`` to the U.S. federal fiscal sequence:
+			October is month 1, January is month 4, and September is month 12.
 
 		Returns:
-			int: Value produced by the operation.
+			int: Federal fiscal-month number from 1 through 12.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -639,10 +689,11 @@ class FiscalYear( DB ):
 		"""Return elapsed fiscal-year days.
 
 		Purpose:
-			Return elapsed fiscal-year days.
+			Counts complete days between the database row's ``start_date`` and ``current_date``. The
+			current date is excluded and dates before the start of the represented period return zero.
 
 		Returns:
-			int: Value produced by the operation.
+			int: Complete fiscal-period days elapsed before ``current_date``.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -659,10 +710,11 @@ class FiscalYear( DB ):
 		"""Return remaining fiscal-year days.
 
 		Purpose:
-			Return remaining fiscal-year days.
+			Counts complete days between ``current_date`` and the database row's ``end_date``. The
+			current date is excluded; dates after the represented period return zero.
 
 		Returns:
-			int: Value produced by the operation.
+			int: Complete fiscal-period days remaining after ``current_date``.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -680,10 +732,11 @@ class FiscalYear( DB ):
 		"""Return elapsed fiscal-year months.
 
 		Purpose:
-			Return elapsed fiscal-year months.
+			Counts complete federal fiscal months before the month containing ``current_date``. October
+			returns zero and September returns eleven; partial progress within the month is excluded.
 
 		Returns:
-			int: Value produced by the operation.
+			int: Complete fiscal months elapsed before the current fiscal month.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -700,10 +753,11 @@ class FiscalYear( DB ):
 		"""Return remaining fiscal-year months.
 
 		Purpose:
-			Return remaining fiscal-year months.
+			Counts complete federal fiscal months following the month containing ``current_date``. The
+			current month is excluded, so October returns eleven and September returns zero.
 
 		Returns:
-			int: Value produced by the operation.
+			int: Complete fiscal months remaining after the current fiscal month.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -720,10 +774,12 @@ class FiscalYear( DB ):
 		"""Return the elapsed fiscal-year percentage.
 
 		Purpose:
-			Return the elapsed fiscal-year percentage.
+			Divides complete days elapsed before ``current_date`` by the inclusive length of the
+			represented fiscal period and multiplies by 100. The calculation is not rounded and does not
+			include the current date.
 
 		Returns:
-			float: Value produced by the operation.
+			float: Unrounded fiscal-period completion percentage on a 0-to-100 scale.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -737,7 +793,25 @@ class FiscalYear( DB ):
 			raise ex
 	
 	def _fiscal_range( self, start: date | datetime, end: date | datetime ) -> Tuple[ date, date ]:
-		"""Return a validated range clamped to the represented fiscal year."""
+		"""Validate and constrain an inclusive range to the represented fiscal period.
+
+		Purpose:
+			Converts date or datetime boundaries to dates, verifies chronological order, and intersects
+			the requested range with ``start_date`` and ``end_date``. This centralizes the inclusive
+			range contract used by holiday, weekend, workday, and calendar-rendering operations.
+
+		Args:
+			start (date | datetime): Requested inclusive lower boundary.
+			end (date | datetime): Requested inclusive upper boundary.
+
+		Returns:
+			Tuple[date, date]: Inclusive intersection with the represented fiscal period.
+
+		Raises:
+			ValueError: A boundary is empty, ``start`` follows ``end``, or the requested range does not
+				intersect the represented fiscal period.
+			TypeError: A boundary cannot be converted by ``to_date``.
+		"""
 		throw_if( 'start', start )
 		throw_if( 'end', end )
 		range_start = to_date( start )
@@ -754,7 +828,23 @@ class FiscalYear( DB ):
 		return clamped_start, clamped_end
 	
 	def count_weekends( self, start: date | datetime, end: date | datetime ) -> int:
-		"""Count weekend days in an inclusive fiscal-year range."""
+		"""Count Saturday and Sunday dates in an inclusive fiscal-period range.
+
+		Purpose:
+			Intersects the requested boundaries with the represented fiscal period and counts each date
+			whose Python weekday number is 5 or 6. The constrained boundaries are retained in
+			``range_start`` and ``range_end`` for inspection.
+
+		Args:
+			start (date | datetime): Requested inclusive lower boundary.
+			end (date | datetime): Requested inclusive upper boundary.
+
+		Returns:
+			int: Number of Saturday and Sunday dates in the constrained inclusive range.
+
+		Raises:
+			Error: Range validation, conversion, or iteration fails; the original exception is retained.
+		"""
 		try:
 			range_start, range_end = self._fiscal_range( start, end )
 			self.range_start = range_start
@@ -775,6 +865,18 @@ class FiscalYear( DB ):
 			raise ex
 	
 	def calendar_days_in_year( self ) -> int:
+		"""Return the inclusive number of days in the current calendar year.
+
+		Purpose:
+			Calculates the distance from January 1 through December 31, including both boundaries. The
+			result reflects leap years automatically.
+
+		Returns:
+			int: ``365`` for a common year or ``366`` for a leap year.
+
+		Raises:
+			Error: Calendar boundaries are unavailable or cannot be subtracted.
+		"""
 		try:
 			return (self.cy_end_date - self.cy_start_date).days + 1
 		except Exception as e:
@@ -785,6 +887,19 @@ class FiscalYear( DB ):
 			raise ex
 	
 	def fiscal_days_in_year( self ) -> int:
+		"""Return the inclusive number of days in the represented fiscal period.
+
+		Purpose:
+			Calculates the distance between the database row's ``start_date`` and ``end_date``, including
+			both boundaries. For annual records this is normally 365 or 366; multi-year availability
+			records may return a larger value.
+
+		Returns:
+			int: Inclusive count of calendar dates in the represented period.
+
+		Raises:
+			Error: Fiscal boundaries are missing or cannot be subtracted.
+		"""
 		try:
 			return (self.end_date - self.start_date).days + 1
 		except Exception as e:
@@ -796,7 +911,26 @@ class FiscalYear( DB ):
 	
 	def count_holidays( self, start: date | datetime, end: date | datetime,
 		use_observed: bool = True ) -> int:
-		"""Count federal holidays in an inclusive fiscal-year range."""
+		"""Count federal holidays in an inclusive fiscal-period range.
+
+		Purpose:
+			Constrains the requested range to the represented fiscal period, loads that fiscal year's
+			holiday row, and counts either observed or statutory holiday dates falling within the
+			inclusive boundaries. The constrained range and date-selection mode are retained on the
+			instance.
+
+		Args:
+			start (date | datetime): Requested inclusive lower boundary.
+			end (date | datetime): Requested inclusive upper boundary.
+			use_observed (bool): Count weekday observance dates when ``True``; count actual statutory
+				dates when ``False``.
+
+		Returns:
+			int: Number of configured federal holidays in the constrained range.
+
+		Raises:
+			Error: Range validation or holiday-row retrieval fails.
+		"""
 		try:
 			range_start, range_end = self._fiscal_range( start, end )
 			self.range_start = range_start
@@ -816,7 +950,26 @@ class FiscalYear( DB ):
 	
 	def count_workdays( self, start: date | datetime, end: date | datetime,
 		use_observed: bool = True ) -> int:
-		"""Count workdays in an inclusive fiscal-year range."""
+		"""Count federal workdays in an inclusive fiscal-period range.
+
+		Purpose:
+			Constrains the requested range to the represented fiscal period and counts Monday-through-
+			Friday dates after excluding configured federal holidays. Holiday exclusion may use observed
+			weekday dates or actual statutory dates. The constrained range and mode are retained on the
+			instance.
+
+		Args:
+			start (date | datetime): Requested inclusive lower boundary.
+			end (date | datetime): Requested inclusive upper boundary.
+			use_observed (bool): Exclude observed holiday dates when ``True``; exclude actual statutory
+				dates when ``False``.
+
+		Returns:
+			int: Number of non-holiday weekdays in the constrained range.
+
+		Raises:
+			Error: Range validation, holiday-row retrieval, or date iteration fails.
+		"""
 		try:
 			range_start, range_end = self._fiscal_range( start, end )
 			self.range_start = range_start
@@ -844,10 +997,11 @@ class FiscalYear( DB ):
 		"""Return calendar-year boundaries.
 
 		Purpose:
-			Return calendar-year boundaries.
+			Returns the inclusive January 1 and December 31 boundaries derived from the calendar year
+			containing ``current_date``.
 
 		Returns:
-			Tuple[date, date]: Value produced by the operation.
+			Tuple[date, date]: ``(cy_start_date, cy_end_date)`` in chronological order.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -864,10 +1018,11 @@ class FiscalYear( DB ):
 		"""Return fiscal-year boundaries.
 
 		Purpose:
-			Return fiscal-year boundaries.
+			Returns the inclusive ``start_date`` and ``end_date`` loaded from the selected
+			``BudgetFiscalYears`` row. These may describe an annual or multi-year availability period.
 
 		Returns:
-			Tuple[date, date]: Value produced by the operation.
+			Tuple[date, date]: ``(start_date, end_date)`` in chronological order.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -882,7 +1037,18 @@ class FiscalYear( DB ):
 			raise ex
 	
 	def is_fiscal_start_year( self ) -> bool:
-		"""Determine whether the calculation date starts the fiscal year."""
+		"""Determine whether the calculation date is the fiscal-period start date.
+
+		Purpose:
+			Compares ``current_date`` with the inclusive ``start_date`` loaded from the selected database
+			row; no calendar assumptions are applied.
+
+		Returns:
+			bool: ``True`` only when both dates are equal.
+
+		Raises:
+			Error: Either date is unavailable or comparison fails.
+		"""
 		try:
 			return self.current_date == self.start_date
 		except Exception as e:
@@ -893,7 +1059,18 @@ class FiscalYear( DB ):
 			raise ex
 	
 	def is_fiscal_end_year( self ) -> bool:
-		"""Determine whether the calculation date ends the fiscal year."""
+		"""Determine whether the calculation date is the fiscal-period end date.
+
+		Purpose:
+			Compares ``current_date`` with the inclusive ``end_date`` loaded from the selected database
+			row; no September 30 assumption is imposed.
+
+		Returns:
+			bool: ``True`` only when both dates are equal.
+
+		Raises:
+			Error: Either date is unavailable or comparison fails.
+		"""
 		try:
 			return self.current_date == self.end_date
 		except Exception as e:
@@ -904,7 +1081,17 @@ class FiscalYear( DB ):
 			raise ex
 	
 	def is_calendar_start_year( self ) -> bool:
-		"""Determine whether the calculation date starts the calendar year."""
+		"""Determine whether the calculation date is January 1.
+
+		Purpose:
+			Compares ``current_date`` with the derived inclusive calendar-year start boundary.
+
+		Returns:
+			bool: ``True`` when ``current_date`` equals ``cy_start_date``; otherwise ``False``.
+
+		Raises:
+			Error: Calendar state is unavailable or comparison fails.
+		"""
 		try:
 			return self.current_date == self.cy_start_date
 		except Exception as e:
@@ -918,10 +1105,10 @@ class FiscalYear( DB ):
 		"""Determine whether the current date ends the calendar year.
 
 		Purpose:
-			Determine whether the current date ends the calendar year.
+			Compares ``current_date`` with the derived December 31 boundary of its calendar year.
 
 		Returns:
-			bool: Value produced by the operation.
+			bool: ``True`` when ``current_date`` equals ``cy_end_date``; otherwise ``False``.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -1768,15 +1955,54 @@ class FiscalYear( DB ):
 			raise ex
 	
 	def fiscal_month_dates( self, fiscal_month: int ) -> List[ List[ date ] ]:
-		"""Return complete date rows for a federal fiscal month."""
+		"""Return complete Monday-first date rows for a federal fiscal month.
+
+		Purpose:
+			Provides a descriptive alias for ``fiscal_month_calendar``. Complete seven-day rows are
+			returned, including leading or trailing dates from adjacent calendar months.
+
+		Args:
+			fiscal_month (int): Federal fiscal-month number from 1 through 12, where October is 1.
+
+		Returns:
+			List[List[date]]: Calendar week rows containing seven date objects each.
+
+		Raises:
+			Error: The fiscal month is invalid or its calendar matrix cannot be created.
+		"""
 		return self.fiscal_month_calendar( fiscal_month )
 	
 	def fiscal_month_day_numbers( self, fiscal_month: int ) -> List[ List[ int ] ]:
-		"""Return day-number rows for a federal fiscal month."""
+		"""Return Monday-first day-number rows for a federal fiscal month.
+
+		Purpose:
+			Provides a descriptive alias for ``fiscal_month_weeks``. Dates belonging to adjacent months
+			are represented by zero so every returned row contains a complete Monday-through-Sunday week.
+
+		Args:
+			fiscal_month (int): Federal fiscal-month number from 1 through 12, where October is 1.
+
+		Returns:
+			List[List[int]]: Week rows containing day numbers and zero placeholders.
+
+		Raises:
+			Error: The fiscal month is invalid or its week matrix cannot be created.
+		"""
 		return self.fiscal_month_weeks( fiscal_month )
 	
 	def dates_by_month( self ) -> Dict[ str, List[ date ] ]:
-		"""Return fiscal-year dates grouped by month name."""
+		"""Return represented fiscal-period dates grouped in federal month order.
+
+		Purpose:
+			Provides a descriptive alias for ``fiscal_calendar``. The insertion order is October through
+			September and each value is an inclusive chronological list for that month.
+
+		Returns:
+			Dict[str, List[date]]: Full English month names mapped to their represented dates.
+
+		Raises:
+			Error: Fiscal-month boundaries or date sequences cannot be created.
+		"""
 		return self.fiscal_calendar( )
 	
 	def weekdays_by_month( self ) -> Dict[ str, int ]:
@@ -1897,7 +2123,25 @@ class FiscalYear( DB ):
 	
 	def holiday_dates_between( self, start: date | datetime, end: date | datetime,
 		use_observed: bool = True ) -> Dict[ str, date ]:
-		"""Return federal holiday names and date values within an inclusive range."""
+		"""Return named federal holidays within an inclusive fiscal-period range.
+
+		Purpose:
+			Constrains the requested boundaries to the represented fiscal period, selects either observed
+			or actual dates, sorts matches chronologically, and returns native date values. The effective
+			boundaries and selection mode are retained on the instance.
+
+		Args:
+			start (date | datetime): Requested inclusive lower boundary.
+			end (date | datetime): Requested inclusive upper boundary.
+			use_observed (bool): Return observed dates when ``True``; return actual statutory dates when
+				``False``.
+
+		Returns:
+			Dict[str, date]: Holiday names mapped to dates in chronological insertion order.
+
+		Raises:
+			Error: Range validation, holiday-row retrieval, or date comparison fails.
+		"""
 		try:
 			range_start, range_end = self._fiscal_range( start, end )
 			self.range_start = range_start
@@ -1923,8 +2167,21 @@ class FiscalYear( DB ):
 		"""Return federal holiday names and ISO dates within an inclusive range.
 
 		Purpose:
-			Preserves the existing string-based return contract. Use ``holiday_dates_between`` for
-			date values.
+			Calls ``holiday_dates_between`` and serializes each returned date with ``date.isoformat``.
+			This preserves the library's string-based export contract while retaining chronological
+			insertion order.
+
+		Args:
+			start (date | datetime): Requested inclusive lower boundary.
+			end (date | datetime): Requested inclusive upper boundary.
+			use_observed (bool): Return observed dates when ``True``; return actual statutory dates when
+				``False``.
+
+		Returns:
+			Dict[str, str]: Holiday names mapped to ISO ``YYYY-MM-DD`` date strings.
+
+		Raises:
+			Error: The range cannot be validated, holidays cannot be loaded, or serialization fails.
 		"""
 		try:
 			return { name: holiday_date.isoformat( ) for name, holiday_date in
@@ -2031,10 +2288,13 @@ class FiscalYear( DB ):
 		"""Return the mapped fiscal-year row as a dictionary.
 
 		Purpose:
-			Return the mapped fiscal-year row as a dictionary.
+			Serializes the core appropriation and calendar fields loaded from the
+			``BudgetFiscalYears`` row. Runtime calculation state such as ``current_date``, range
+			boundaries, cached query data, and the legacy ``compensable_workdays`` alias is excluded.
 
 		Returns:
-			Dict[str, object]: Value produced by the operation.
+			Dict[str, object]: New dictionary using database-style field names and native date/numeric
+				values. Mutating the dictionary does not modify the entity.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -2057,8 +2317,11 @@ class FederalHoliday( DB ):
 	"""Federal-holiday database entity.
 
 	Purpose:
-		Maps one ``FederalHolidays`` database row to typed properties and provides actual-date,
-		observed-date, holiday-membership, weekend, and dictionary-export operations.
+		Maps one ``FederalHolidays`` database row to typed holiday dates for a U.S. federal fiscal
+		year. The entity preserves each statutory date, derives the standard Friday/Monday observance
+		for weekend holidays, supports membership and weekend tests, and exports database-compatible
+		field mappings. Holiday dates come from the bundled database rather than being recomputed from
+		calendar rules.
 
 	Attributes:
 		input_fiscal_year (str): Fiscal year supplied to the constructor.
@@ -2142,20 +2405,25 @@ class FederalHoliday( DB ):
 		"""Return the fiscal-year identifier.
 
 		Purpose:
-			Return the fiscal-year identifier.
+			Provides the loaded holiday row's fiscal-year identifier as the concise developer
+			representation used by logs, debuggers, containers, and interactive sessions.
 
 		Returns:
-			str: Value produced by the operation."""
+			str: Fiscal year loaded from the ``FederalHolidays`` row.
+		"""
 		return self.fiscal_year
 	
 	def __dir__( self ) -> List[ str ]:
 		"""Return public federal-holiday members.
 
 		Purpose:
-			Return public federal-holiday members.
+			Restricts ``dir(instance)`` to the loaded statutory holiday fields and supported date,
+			membership, weekend, and export operations. Database query state and implementation details
+			are intentionally omitted.
 
 		Returns:
-			List[str]: Value produced by the operation."""
+			List[str]: Stable public member names presented by ``dir`` and interactive IDE tooling.
+		"""
 		return [ 'id', 'fiscal_year', 'columbus_day', 'veterans_day', 'thanksgiving_day',
 			'christmas_day', 'new_years_day', 'martin_luther_king_day', 'presidents_day',
 			'memorial_day', 'juneteenth_day', 'independence_day', 'labor_day', 'observed_date',
@@ -2165,13 +2433,15 @@ class FederalHoliday( DB ):
 		"""Return the observed date for a holiday.
 
 		Purpose:
-			Return the observed date for a holiday.
+			Applies the standard weekday-observance adjustment used by this library: a Saturday holiday
+			is observed on the preceding Friday, a Sunday holiday on the following Monday, and a weekday
+			holiday on its actual date. The supplied date is retained in ``actual_date``.
 
 		Args:
-			value (date): Value used by the operation.
+			value (date): Actual statutory holiday date to adjust.
 
 		Returns:
-			date: Value produced by the operation.
+			date: Weekday observance date corresponding to ``value``.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -2194,10 +2464,13 @@ class FederalHoliday( DB ):
 		"""Return actual and observed federal-holiday dates.
 
 		Purpose:
-			Return actual and observed federal-holiday dates.
+			Builds a name-keyed mapping for the eleven holidays loaded from the database row. Each nested
+			mapping contains the stored statutory date under ``actual`` and the weekday-adjusted date
+			under ``observed``. The order follows the federal fiscal-year sequence beginning with
+			Columbus Day and ending with Labor Day.
 
 		Returns:
-			Dict[str, Dict[str, date]]: Value produced by the operation.
+			Dict[str, Dict[str, date]]: Holiday names mapped to ``actual`` and ``observed`` native dates.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -2222,14 +2495,17 @@ class FederalHoliday( DB ):
 		"""Determine whether a date is a federal holiday.
 
 		Purpose:
-			Determine whether a date is a federal holiday.
+			Normalizes the supplied date, selects either the observed or statutory dates from
+			``holidays``, and performs an exact membership comparison. The normalized date and selection
+			mode are retained in ``when`` and ``use_observed``.
 
 		Args:
-			when (date | datetime): Value used by the operation.
-			observed (bool): Value used by the operation.
+			when (date | datetime): Date to test; datetime time and timezone components are discarded.
+			observed (bool): Compare against observed weekday dates when ``True`` or actual statutory
+				dates when ``False``.
 
 		Returns:
-			bool: Value produced by the operation.
+			bool: ``True`` when the normalized date matches a configured holiday date.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -2250,13 +2526,15 @@ class FederalHoliday( DB ):
 		"""Determine whether a date falls on a weekend.
 
 		Purpose:
-			Determine whether a date falls on a weekend.
+			Normalizes the supplied date and classifies Python weekday numbers 5 and 6 as Saturday and
+			Sunday. Federal-holiday status is not considered. The normalized date is retained in
+			``when``.
 
 		Args:
-			when (date | datetime): Value used by the operation.
+			when (date | datetime): Date to classify; datetime time and timezone components are discarded.
 
 		Returns:
-			bool: Value produced by the operation.
+			bool: ``True`` for Saturday or Sunday; otherwise ``False``.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
@@ -2275,10 +2553,13 @@ class FederalHoliday( DB ):
 		"""Return the mapped federal-holiday row as a dictionary.
 
 		Purpose:
-			Return the mapped federal-holiday row as a dictionary.
+			Serializes the database row identifier, fiscal year, and eleven actual statutory holiday
+			dates using the original database column names. Derived observed dates and transient
+			membership-test state are intentionally excluded.
 
 		Returns:
-			Dict[str, object]: Value produced by the operation.
+			Dict[str, object]: New database-compatible mapping containing native date values. Mutating
+				the dictionary does not modify the entity.
 
 		Raises:
 			Error: The operation fails and the underlying exception is wrapped."""
