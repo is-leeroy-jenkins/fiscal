@@ -59,11 +59,13 @@ nav:
       - Federal Holidays: user-guide/federal-holidays.md
       - Date Ranges: user-guide/date-ranges.md
       - Workdays and Weekends: user-guide/workdays-and-weekends.md
+      - Full-Time Equivalents: user-guide/full-time-equivalents.md
       - Calendar Rendering: user-guide/calendar-rendering.md
       - Data Exports: user-guide/data-exports.md
   - API Reference:
       - Overview: api/index.md
       - Fiscal Module: api/fiscal.md
+      - Full-Time Equivalents: api/fte.md
   - Development: development.md
 
 plugins:

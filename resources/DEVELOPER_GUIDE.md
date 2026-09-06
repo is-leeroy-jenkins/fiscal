@@ -1,13 +1,13 @@
 # Fiscal Developer Guide
 
-Fiscal is a SQLite-backed Python package for federal fiscal-year, calendar-year, federal-holiday, workday, and weekend calculations.
+Fiscal is a SQLite-backed Python package for federal fiscal-year, calendar-year, federal-holiday, workday, weekend, and civilian FTE calculations.
 
 This guide documents the audited implementation in `fiscal/__init__.py`.
 
 ## Public Package Contract
 
 ```python
-from fiscal import DB, FederalHoliday, FiscalYear, throw_if, to_date
+from fiscal import DB, Error, FederalHoliday, FiscalYear, FullTimeEquivalent, throw_if, to_date, weekday_number
 ```
 
 The audited `__all__` contract exports:
@@ -15,14 +15,17 @@ The audited `__all__` contract exports:
 ```python
 __all__: tuple[ str, ... ] = (
     "DB",
+    "Error",
     "FederalHoliday",
     "FiscalYear",
+    "FullTimeEquivalent",
     "throw_if",
     "to_date",
+    "weekday_number",
 )
 ```
 
-The module also contains the internal weekday-normalization helper `_weekday_number()`.
+Shared public validation and date-normalization helpers are implemented in `fiscal/utilities.py`.
 
 ## Runtime Dependencies
 
@@ -35,26 +38,25 @@ datetime
 typing
 ```
 
-Third-party and project dependencies:
+Third-party runtime dependency:
 
 ```text
 pandas
-config
-boogr
 ```
 
 Install external runtime dependencies with:
 
 ```bash
-pip install pandas boogr
+pip install -e .
 ```
 
 ## Configuration Contract
 
-`config.py` must define:
+`fiscal/config.py` supplies package-relative defaults for:
 
 ```python
 DB_PATH: str
+LOG_PATH: Path
 
 TABLES: list[ str ] = [
     "BudgetFiscalYears",
@@ -62,7 +64,8 @@ TABLES: list[ str ] = [
 ]
 ```
 
-The implementation uses positional table selection:
+Applications may override `DB_PATH`, `LOG_PATH`, and the documented logging switches with environment
+variables. The implementation uses positional table selection:
 
 | Index | Consumer |
 |---:|---|
@@ -609,7 +612,8 @@ The audited module was exercised through:
 - reversed and nonintersecting ranges
 - missing records and unsupported tables
 
-The completed audit reported 236 passing execution checks and no failing paths.
+The automated pytest suite validates package installation, database integration, date normalization,
+diagnostic sanitization, and both OMB FTE methods.
 
 ## Extension Guidelines
 
@@ -631,13 +635,14 @@ When adding functionality:
 Before release:
 
 ```bash
-python -m py_compile fiscal/fiscal.py
-pytest
+python -m compileall -q fiscal
+python -m pytest
+python -m mkdocs build --strict
 ```
 
 Confirm:
 
-- `config.py` exposes `DB_PATH` and ordered `TABLES`
+- `fiscal/config.py` exposes `DB_PATH` and ordered `TABLES`
 - both SQLite tables exist
 - all required columns exist
 - each query returns exactly one row

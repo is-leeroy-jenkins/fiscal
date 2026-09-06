@@ -42,8 +42,6 @@
   ******************************************************************************************
 '''
 import os
-import re
-from typing import Optional, List, Dict
 from pathlib import Path
 
 # -------------- APP-LEVEL UTILITIES -------------
@@ -196,3 +194,12 @@ TABLES = [ 'BudgetFiscalYears', 'FederalHolidays' ]
 ROOT_DIR = Path( __file__ ).resolve( ).parent
 DB_DIR: Path = get_path( 'DB_DIR', ROOT_DIR / 'sqlite' )
 DB_PATH: str = get_text( 'DB_PATH', str( DB_DIR / 'data.db' ) )
+LOG_DIR: Path = get_path( 'LOG_DIR', ROOT_DIR / 'logging' )
+LOG_PATH: Path = get_path( 'LOG_PATH', LOG_DIR / 'Exceptions.db' )
+LOG_FILE: str = get_text( 'LOG_FILE', 'Exceptions' )
+LOG_RETENTION_DAYS: int = get_int( 'LOG_RETENTION_DAYS', 7 )
+MAX_LOG_MESSAGE_CHARS: int = get_int( 'MAX_LOG_MESSAGE_CHARS', 1000 )
+MAX_LOG_TRACE_CHARS: int = get_int( 'MAX_LOG_TRACE_CHARS', 4000 )
+ENABLE_EXCEPTION_LOGGING: bool = get_bool( 'ENABLE_EXCEPTION_LOGGING', True )
+ENABLE_FILE_PATH_LOGGING: bool = get_bool( 'ENABLE_FILE_PATH_LOGGING', False )
+ENABLE_RAW_TEXT_LOGGING: bool = get_bool( 'ENABLE_RAW_TEXT_LOGGING', False )
