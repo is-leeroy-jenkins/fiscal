@@ -52,16 +52,17 @@ def throw_if( name: str, value: object ) -> None:
 	"""Raise ``ValueError`` when a required value is empty.
 
 	Purpose:
-		Provide a small, consistent guard for required arguments and configuration values. The
-		function treats falsy values as invalid and raises a ``ValueError`` containing the
-		caller-supplied argument or setting name.
+		Provides the configuration module's required-value guard. Python-falsy values—including
+		``None``, ``False``, numeric zero, empty strings, and empty containers—are rejected with a
+		message containing the caller-supplied setting name. This behavior is intentionally broader
+		than the public guard in ``fiscal.__init__``.
 
 	Args:
 		name (str): Name of the argument or configuration value being validated.
 		value (object): Value to validate.
 
 	Returns:
-		None.
+		None: Successful validation has no return value or side effect.
 
 	Raises:
 		ValueError: Raised when ``value`` is falsy.
@@ -70,19 +71,21 @@ def throw_if( name: str, value: object ) -> None:
 		raise ValueError( f'Argument "{name}" cannot be empty!' )
 
 def get_bool( name: str, default: bool = False ) -> bool:
-	"""Read a Boolean environment variable using Fiddy's true-value convention.
+	"""Read a Boolean environment variable using the application's accepted true values.
 
 	Purpose:
-		Convert environment-variable text into a deterministic Boolean value. Missing variables
-		return the caller-provided default. Values of ``1``, ``true``, ``yes``, ``y``, and
-		``on`` are treated as ``True``; all other defined values are treated as ``False``.
+		Converts environment-variable text into a deterministic Boolean without raising during
+		module initialization. Matching is case-insensitive and ignores surrounding whitespace.
+		Missing variables return ``default``; defined values of ``1``, ``true``, ``yes``, ``y``, and
+		``on`` return ``True``; every other defined value returns ``False``.
 
 	Args:
 		name (str): Environment variable name.
 		default (bool): Default value used when the environment variable is not defined.
 
 	Returns:
-		bool: Parsed Boolean value. If parsing fails, the original ``default`` value is returned.
+		bool: Parsed Boolean value. An invalid setting name or unexpected environment-access failure
+			returns the original ``default``.
 	"""
 	try:
 		throw_if( 'name', name )
@@ -101,8 +104,9 @@ def get_int( name: str, default: int ) -> int:
 	"""Read an integer environment variable with a deterministic fallback.
 
 	Purpose:
-		Parse an optional environment variable as an integer while preserving a safe default when
-		the variable is missing, empty, or invalid.
+		Parses an optional environment variable with Python's base-10 ``int`` conversion after
+		removing surrounding whitespace. Missing, empty, whitespace-only, nonnumeric, or otherwise
+		invalid values return ``default`` so configuration import remains deterministic.
 
 	Args:
 		name (str): Environment variable name.
@@ -122,8 +126,9 @@ def get_float( name: str, default: float ) -> float:
 	"""Read a floating-point environment variable with a deterministic fallback.
 
 	Purpose:
-		Parse an optional environment variable as a float while preserving a safe default when the
-		variable is missing, empty, or invalid.
+		Parses an optional environment variable with Python's ``float`` conversion after removing
+		surrounding whitespace. Missing, empty, whitespace-only, nonnumeric, or otherwise invalid
+		values return ``default`` so configuration import remains deterministic.
 
 	Args:
 		name (str): Environment variable name.
@@ -143,16 +148,17 @@ def get_path( name: str, default: Path ) -> Path:
 	"""Read a path environment variable and return a resolved ``Path``.
 
 	Purpose:
-		Resolve optional filesystem configuration from the environment. Missing variables return
-		the resolved default path. Invalid values return the resolved default path rather than
-		interrupting module import.
+		Resolves optional filesystem configuration to an absolute ``Path``. A defined nonempty
+		environment value is resolved relative to the process working directory; otherwise the
+		default path is resolved. The function does not create the path or require it to exist.
+		Invalid setting names and conversion failures fall back to the resolved default.
 
 	Args:
 		name (str): Environment variable name.
 		default (Path): Default path used when the environment variable is not defined.
 
 	Returns:
-		Path: Resolved path value or resolved default path.
+		Path: Absolute configured path or absolute fallback path. Existence is not guaranteed.
 	"""
 	try:
 		throw_if( 'name', name )
@@ -166,8 +172,9 @@ def get_text( name: str, default: str ) -> str:
 	"""Read a text environment variable with a deterministic fallback.
 
 	Purpose:
-		Return an environment variable as text while preserving the supplied default when the
-		variable is missing or empty.
+		Returns an environment variable as text without trimming or normalization. A missing value or
+		an exact empty string uses ``default``; whitespace-only strings remain valid configured text.
+		Invalid setting names and environment-access failures also fall back to ``default``.
 
 	Args:
 		name (str): Environment variable name.
