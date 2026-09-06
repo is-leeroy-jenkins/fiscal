@@ -48,17 +48,29 @@ import FreeSimpleGUI as sg
 import html
 
 class Dark( ):
-	'''
+	"""FreeSimpleGUI dark-theme configuration.
 
-        Constructor:
-		-----------
-        Dark( )
+	Purpose:
+		Applies the application's ``DarkGrey15`` palette and global GUI options, then exposes the
+		resolved colors, font, icon, scrollbar color, and default form size used by error dialogs.
+		Construction changes FreeSimpleGUI process-wide theme, icon, font, and user-settings state;
+		it does not merely hold immutable color constants.
 
-        Pupose:
-		-------
-		Class representing the theme
-
-    '''
+	Attributes:
+		theme_background (str | None): Active window background color.
+		theme_textcolor (str | None): Active general text color.
+		element_forecolor (str | None): Active element foreground color.
+		element_backcolor (str | None): Active element background color.
+		text_backcolor (str | None): Active text-element background color.
+		text_forecolor (str | None): Active text-element foreground color.
+		input_forecolor (str | None): Active input text color.
+		input_backcolor (str | None): Active input background color.
+		button_color (Tuple[str, str] | None): Active button foreground/background pair.
+		icon_path (str | None): Relative path to the application window icon.
+		theme_font (Tuple[str, int] | None): Global GUI font family and point size.
+		scrollbar_color (str | None): Application scrollbar accent color.
+		form_size (Tuple[int, int] | None): Default window dimensions in pixels.
+	"""
 	theme_background: Optional[ str ]
 	theme_textcolor: Optional[ str ]
 	element_forecolor: Optional[ str ]
@@ -75,6 +87,20 @@ class Dark( ):
 	form_size: Optional[ Tuple[ int, int ] ]
 	
 	def __init__( self ):
+		"""Apply and capture the application-wide dark theme.
+
+		Purpose:
+			Configures FreeSimpleGUI with ``DarkGrey15``, explicit text colors, the Tempus icon, and an
+			11-point Roboto font. The resolved theme values are copied to instance members for reuse by
+			dialog subclasses, and GUI user settings are saved under the ``Boo`` application key.
+
+		Returns:
+			None: Initialization operates through instance assignment and FreeSimpleGUI side effects.
+
+		Raises:
+			Exception: FreeSimpleGUI rejects a theme option, cannot load the icon, or cannot save user
+				settings.
+		"""
 		sg.theme( 'DarkGrey15' )
 		sg.theme_input_text_color( '#FFFFFF' )
 		sg.theme_element_text_color( '#69B1EF' )
@@ -99,21 +125,16 @@ class Dark( ):
 		sg.user_settings_save( 'Boo', r'\resources\theme' )
 	
 	def __dir__( self ) -> List[ str ] | None:
-		'''
+		"""List theme members intentionally exposed for interactive discovery.
 
-		    Purpose:
-		    --------
-		    Creates a List[ str ] of type members
+		Purpose:
+			Restricts ``dir(instance)`` to the color, font, icon, scrollbar, and form-size settings that
+			constitute the supported theme interface.
 
-		    Parameters:
-		    ----------
-			self
-
-		    Returns:
-		    ---------
-			List[ str ] | None
-
-		'''
+		Returns:
+			List[str] | None: Stable public theme-member names. The current implementation always returns
+				a list.
+		"""
 		return [ 'form_size',
 		         'theme_background',
 		         'theme_textcolor',
@@ -131,21 +152,44 @@ class Dark( ):
 		         'scrollbar_color' ]
 
 class Error( Exception ):
-	'''
+	"""Exception wrapper carrying diagnostic and presentation metadata.
 
-        Purpose:
-        ---------
-		Class wrapping error used as the path argument for ErrorDialog class
+	Purpose:
+		Captures an originating exception together with an optional heading, class/cause name, method
+		signature, and module name. It snapshots the active exception type and formatted traceback at
+		construction time so callers can either raise the wrapper or present it through
+		``ErrorDialog`` without losing diagnostic context.
 
-        Constructor:
-		----------
-        Error( error: Exception, heading: str=None, cause: str=None,
-                method: str=None, module: str=None )
-
-    '''
+	Attributes:
+		exception (Exception): Original exception supplied by the caller.
+		heading (str | None): Optional user-facing error heading.
+		cause (str | None): Optional class, component, or cause identifier.
+		method (str | None): Optional method signature or operation name.
+		module (str | None): Optional module identifier.
+		type (type | None): Exception type active when the wrapper was constructed.
+		trace (str): Formatted active traceback captured at construction time.
+		info (str): Combined exception-type and traceback text returned by ``str``.
+	"""
 	
 	def __init__( self, error: Exception, heading: str=None, cause: str=None,
 			method: str=None, module: str=None ):
+		"""Capture an exception and its current traceback context.
+
+		Purpose:
+			Stores the originating exception and optional display metadata, then snapshots
+			``sys.exc_info`` and ``traceback.format_exc``. For a meaningful traceback, construct the
+			wrapper inside the ``except`` block handling ``error``.
+
+		Args:
+			error (Exception): Original exception being wrapped.
+			heading (str | None): Optional user-facing title for an error dialog.
+			cause (str | None): Optional class, component, or cause identifier.
+			method (str | None): Optional method signature or operation name.
+			module (str | None): Optional module identifier.
+
+		Returns:
+			None: Initialization stores diagnostic state and does not return a value.
+		"""
 		super( ).__init__( )
 		self.exception = error
 		self.heading = heading
@@ -157,40 +201,30 @@ class Error( Exception ):
 		self.info = str( exc_info( )[ 0 ] ) + ': \r\n \r\n' + traceback.format_exc( )
 	
 	def __str__( self ) -> str | None:
-		'''
+		"""Return the captured exception type and traceback.
 
-            Purpose:
-            --------
-			returns a string reprentation of the object
+		Purpose:
+			Provides the diagnostic ``info`` text used when the wrapper is logged, printed, or converted
+			to a string. The text reflects the exception context captured during construction.
 
-            Parameters:
-            ----------
-			self
-
-            Returns:
-            ---------
-			str | None
-
-		'''
+		Returns:
+			str | None: Combined exception-type and formatted traceback text, or ``None`` if ``info`` was
+				explicitly cleared after construction.
+		"""
 		if self.info is not None:
 			return self.info
 	
 	def __dir__( self ) -> List[ str ] | None:
-		'''
+		"""List diagnostic members intended for interactive discovery.
 
-		    Purpose:
-		    --------
-		    Creates a List[ str ] of type members
+		Purpose:
+			Restricts ``dir(instance)`` to the public presentation and diagnostic names historically
+			exposed by this wrapper.
 
-		    Parameters:
-		    ----------
-			self
-
-		    Returns:
-		    ---------
-			List[ str ] | None
-
-		'''
+		Returns:
+			List[str] | None: Stable public diagnostic-member names. The current implementation always
+				returns a list.
+		"""
 		return [ 'message',
 		         'cause',
 		         'method',
@@ -200,14 +234,21 @@ class Error( Exception ):
 		         'info' ]
 
 class ErrorDialog( Dark ):
-	'''
-	
-	    Purpose:
-	    --------
-	    Class that displays excetption target_values that accepts
-         a single, optional argument 'error' of scaler Error
+	"""Modal FreeSimpleGUI presentation for a captured ``Error``.
 
-    '''
+	Purpose:
+		Combines the application's dark theme with structured error metadata and renders a blocking
+		dialog containing the heading, module, class/cause, method, and captured traceback. The dialog
+		is created only when ``show`` is called; construction prepares theme and error state.
+
+	Attributes:
+		error (Error | None): Wrapped diagnostic object displayed by the dialog.
+		heading (str | None): Optional user-facing heading copied from ``error``.
+		module (str | None): Module identifier copied from ``error``.
+		info (str | None): Formatted traceback copied from ``error.trace``.
+		cause (str | None): Class, component, or cause identifier copied from ``error``.
+		method (str | None): Method signature or operation name copied from ``error``.
+	"""
 	
 	# Fields
 	error: Optional[ Exception ]
@@ -218,6 +259,23 @@ class ErrorDialog( Dark ):
 	method: Optional[ str ]
 	
 	def __init__( self, error: Error ):
+		"""Initialize theme and diagnostic state for an error dialog.
+
+		Purpose:
+			Applies the inherited dark theme, refreshes the dialog-specific global GUI options, sets the
+			500-by-300-pixel form size, and copies presentation fields from the supplied ``Error``. GUI
+			user settings are saved under the ``Mathy`` application key.
+
+		Args:
+			error (Error): Captured exception and metadata to present.
+
+		Returns:
+			None: Initialization assigns state and applies FreeSimpleGUI side effects.
+
+		Raises:
+			AttributeError: ``error`` does not provide the expected diagnostic members.
+			Exception: FreeSimpleGUI theme, icon, option, or settings initialization fails.
+		"""
 		super( ).__init__( )
 		sg.theme( 'DarkGrey15' )
 		sg.theme_input_text_color( '#FFFFFF' )
@@ -249,39 +307,28 @@ class ErrorDialog( Dark ):
 		self.method = error.method
 	
 	def __str__( self ) -> str | None:
-		'''
+		"""Return the traceback text prepared for display.
 
-            Purpose:
-            --------
-			returns a string reprentation of the object
+		Purpose:
+			Provides the copied ``Error.trace`` value when the dialog is logged, printed, or converted to
+			a string. It does not open the GUI window.
 
-            Parameters:
-            ----------
-			self
-
-            Returns:
-            ---------
-			str | None
-
-		'''
+		Returns:
+			str | None: Captured formatted traceback, or ``None`` when no traceback text is assigned.
+		"""
 		return self.info
 	
 	def __dir__( self ) -> List[ str ] | None:
-		'''
+		"""List dialog members intentionally exposed for interactive discovery.
 
-		    Purpose:
-		    --------
-		    Creates a List[ str ] of type members
+		Purpose:
+			Restricts ``dir(instance)`` to dialog dimensions, theme settings, diagnostic fields, and the
+			``show`` operation used by callers.
 
-		    Parameters:
-		    ----------
-			self
-
-		    Returns:
-		    ---------
-			List[ str ] | None
-
-		'''
+		Returns:
+			List[str] | None: Stable public dialog-member names. The current implementation always
+				returns a list.
+		"""
 		return [ 'size',
 		         'settings_path',
 		         'theme_background',
@@ -309,21 +356,20 @@ class ErrorDialog( Dark ):
 		         'message' 'show' ]
 	
 	def show( self ) -> object:
-		'''
+		"""Display the blocking error dialog and close it after dismissal.
 
-            Purpose:
-            --------
+		Purpose:
+			Builds a modal-style FreeSimpleGUI window containing the optional heading and a multiline
+			diagnostic block with module, class/cause, method, and traceback information. The event loop
+			continues until the user closes the window or activates the OK/Cancel controls, after which
+			the window is closed.
 
+		Returns:
+			object: The method performs GUI side effects and currently returns ``None`` implicitly.
 
-            Parameters:
-            ----------
-
-
-            Returns:
-            ---------
-
-
-		'''
+		Raises:
+			Exception: FreeSimpleGUI cannot construct, read, or close the window.
+		"""
 		_msg = self.heading if isinstance( self.heading, str ) else None
 		_info = f'Module:\t{self.module}\r\nClass:\t{self.cause}\r\n' \
 		        f'Method:\t{self.method}\r\n \r\n{self.info}'
