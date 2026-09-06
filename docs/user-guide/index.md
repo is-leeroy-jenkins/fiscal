@@ -1,4 +1,4 @@
-![](../images/fiscal-userguide.png)
+![](https://github.com/is-leeroy-jenkins/fiscal/blob/master/resources/images/github/project-fiscal.png)
 
 ___
 
