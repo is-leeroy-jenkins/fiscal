@@ -1,4 +1,5 @@
-# API Reference
+![](../images/fiscal-classmap.png)
+___
 
 The API reference is generated from the package docstrings with mkdocstrings.
 
