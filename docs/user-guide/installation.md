@@ -6,26 +6,24 @@
 pip install fiscal
 ```
 
-Install direct runtime dependencies when developing from source:
+Install the project and its development dependencies from a source checkout:
 
 ```bash
-pip install pandas boogr
+pip install -e ".[dev]"
 ```
 
 ## Configure the Database
 
-Create or update `config.py`:
+Fiscal ships with the SQLite reference data and default configuration. Applications may override the
+data and logging paths with environment variables:
 
-```python
-DB_PATH: str = "path/to/fiscal.db"
-
-TABLES: list[ str ] = [
-    "BudgetFiscalYears",
-    "FederalHolidays",
-]
+```bash
+DB_PATH=/path/to/fiscal.db
+LOG_PATH=/path/to/Exceptions.db
 ```
 
-The first table must contain fiscal-year records. The second must contain federal-holiday records.
+An overridden database must retain the `BudgetFiscalYears` and `FederalHolidays` schemas expected by
+the package.
 
 ## Verify the Installation
 
@@ -36,4 +34,4 @@ fy = FiscalYear( 2026 )
 print( fy.fiscal_year )
 ```
 
-A missing database, table, record, or required column raises `boogr.Error`.
+A missing database, table, record, or required column raises Fiscal's bundled `Error` wrapper.

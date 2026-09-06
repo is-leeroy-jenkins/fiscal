@@ -1,12 +1,1 @@
-typing~=3.7.4.3
-numpy
-pandas
-matplotlib
-seaborn
-## MkDocs
-mkdocs
-mkdocs-material
-mkdocstrings[python]
-mkdocs-autorefs
-pymdown-extensions
-black
+pandas>=2.0

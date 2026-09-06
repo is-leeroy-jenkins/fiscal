@@ -46,14 +46,14 @@ from typing import List, Tuple, Optional
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-import config as cfg
+from . import config as cfg
 import sqlite3
 
 def get_config_bool( name: str, default: bool = False ) -> bool:
 	"""Read a Boolean value from the configuration module.
 
 	Purpose:
-		Safely read a Boolean configuration value without requiring every deployment of Fiddy to
+		Safely read a Boolean configuration value without requiring every deployment of Fiscal to
 		define the newest configuration switches. Missing values return the supplied default.
 
 	Args:
@@ -65,7 +65,7 @@ def get_config_bool( name: str, default: bool = False ) -> bool:
 	"""
 	try:
 		value = getattr( cfg, name, default )
-		return bool( value )
+		return value if isinstance( value, bool ) else default
 	except Exception:
 		return default
 
@@ -73,7 +73,7 @@ def get_config_int( name: str, default: int ) -> int:
 	"""Read an integer value from the configuration module.
 
 	Purpose:
-		Safely read an integer configuration value without requiring every deployment of Fiddy to
+		Safely read an integer configuration value without requiring every deployment of Fiscal to
 		define the newest configuration switches. Missing or invalid values return the supplied
 		default.
 
@@ -168,7 +168,7 @@ class Error( Exception ):
 	"""Wrap a Python exception with structured and sanitized diagnostic metadata.
 
 	The ``Error`` class extends ``Exception`` and stores the original exception together with
-	context fields used by Fiddy logging and diagnostics. The wrapper captures a sanitized
+	context fields used by Fiscal logging and diagnostics. The wrapper captures a sanitized
 	message, exception type, sanitized traceback, component or class cause, module name, method
 	or function signature, optional heading, and combined information string.
 
@@ -218,18 +218,21 @@ class Error( Exception ):
 		Returns:
 			None.
 		"""
-		self.error = error
-		self.heading = sanitize_text( heading, 120 ) if heading else None
-		self.cause = sanitize_text( cause, 120 ) if cause else None
-		self.method = sanitize_text( method, 180 ) if method else None
-		self.module = sanitize_text( module, 120 ) if module else None
-		self.type = exc_info( )[ 0 ]
-		self.message = sanitize_text( str( error ) if error else '',
+		object.__setattr__( self, 'error', error )
+		object.__setattr__( self, 'heading', sanitize_text( heading, 120 ) if heading else None )
+		object.__setattr__( self, 'cause', sanitize_text( cause, 120 ) if cause else None )
+		object.__setattr__( self, 'method', sanitize_text( method, 180 ) if method else None )
+		object.__setattr__( self, 'module', sanitize_text( module, 120 ) if module else None )
+		object.__setattr__( self, 'type', exc_info( )[ 0 ] )
+		message = sanitize_text( str( error ) if error else '',
 			get_config_int( 'MAX_LOG_MESSAGE_CHARS', 1000 ) )
-		self.trace = sanitize_traceback( traceback.format_exc( ),
+		trace = sanitize_traceback( traceback.format_exc( ),
 			get_config_int( 'MAX_LOG_TRACE_CHARS', 4000 ) )
-		self.info = sanitize_text( f'{str( self.type )}: {self.trace}',
+		info = sanitize_text( f'{str( self.type )}: {trace}',
 			get_config_int( 'MAX_LOG_TRACE_CHARS', 4000 ) )
+		object.__setattr__( self, 'message', message )
+		object.__setattr__( self, 'trace', trace )
+		object.__setattr__( self, 'info', info )
 		super( ).__init__( self.message )
 		
 	
@@ -237,7 +240,7 @@ class Error( Exception ):
 		"""Sanitize public metadata fields when they are assigned after construction.
 
 		Purpose:
-			Preserve the established Fiddy usage pattern where callers create ``Error(e)`` and then
+			Preserve the established Fiscal usage pattern where callers create ``Error(e)`` and then
 			assign ``cause``, ``module``, and ``method`` afterward. Metadata assignments are
 			sanitized automatically so delayed assignment does not bypass privacy controls.
 
@@ -536,7 +539,7 @@ class Logger( ):
 
 def log_error( error: Exception, heading: str = None, cause: str = None,
 		method: str = None, module: str = None ) -> Error:
-	"""Wrap and log an exception using the configured Fiddy error database.
+	"""Wrap and log an exception using the configured Fiscal error database.
 
 	Purpose:
 		Create an ``Error`` object and persist it in one step. The wrapped error object is returned

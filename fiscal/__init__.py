@@ -47,103 +47,21 @@ import sqlite3
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import pandas as pd
-import config as cfg
-from boogr import Error, Logger
+from . import config as cfg
+from .boogr import Error
+from .fte import FullTimeEquivalent
+from .utilities import throw_if, to_date, weekday_number
 
-__all__: tuple[ str, ... ] = ('DB', 'FederalHoliday', 'FiscalYear', 'throw_if', 'to_date',)
-
-_WEEKDAY_NAMES: Dict[ str, int ] = { 'MONDAY': calendar.MONDAY, 'TUESDAY': calendar.TUESDAY,
-	'WEDNESDAY': calendar.WEDNESDAY, 'THURSDAY': calendar.THURSDAY, 'FRIDAY': calendar.FRIDAY,
-	'SATURDAY': calendar.SATURDAY, 'SUNDAY': calendar.SUNDAY, }
-
-def weekday_number( value: int | str ) -> int:
-	"""Resolve a weekday name or number.
-
-	Purpose:
-		Converts a full English weekday name or an integer from 0 through 6 into the weekday
-		number used internally by Python date objects.
-
-	Args:
-		value (int | str): Full weekday name or weekday number where Monday is 0.
-
-	Returns:
-		int: Weekday number from 0 through 6.
-
-	Raises:
-		TypeError: The supplied value is not an integer or string.
-		ValueError: The supplied weekday name or number is invalid.
-	"""
-	if isinstance( value, bool ):
-		raise TypeError( 'Weekday cannot be a Boolean value.' )
-	if isinstance( value, int ):
-		if value < calendar.MONDAY or value > calendar.SUNDAY:
-			raise ValueError( 'Weekday must be between 0 and 6.' )
-		return value
-	if isinstance( value, str ):
-		weekday_name = value.strip( ).upper( )
-		if weekday_name not in _WEEKDAY_NAMES:
-			raise ValueError( f'Unsupported weekday: {value}' )
-		return _WEEKDAY_NAMES[ weekday_name ]
-	raise TypeError( f'Unsupported weekday value: {type( value ).__name__}' )
-
-def throw_if( name: str, value: object ) -> None:
-	"""Validate a required argument.
-
-	Purpose:
-		Raises ``ValueError`` when a required argument is ``None``, an empty string, or an empty
-		collection.
-
-	Args:
-		name (str): Name of the argument being validated.
-		value (object): Argument value to validate.
-
-	Returns:
-		None: Validation does not return a value.
-
-	Raises:
-		ValueError: The supplied value is empty.
-	"""
-	if value is None:
-		raise ValueError( f'Argument "{name}" cannot be empty!' )
-	if isinstance( value, str ) and not value.strip( ):
-		raise ValueError( f'Argument "{name}" cannot be empty!' )
-	if isinstance( value, (list, tuple, dict, set) ) and len( value ) == 0:
-		raise ValueError( f'Argument "{name}" cannot be empty!' )
-
-def to_date( value: date | datetime | str | None ) -> Optional[ date ]:
-	"""Convert a supported value to ``datetime.date``.
-
-	Purpose:
-		Converts date objects, datetime objects, ISO date text, and month/day/year text into a
-		``datetime.date`` value. Database sentinel values resolve to ``None``.
-
-	Args:
-		value (date | datetime | str | None): Value to convert.
-
-	Returns:
-		date | None: Converted date or ``None`` for a database sentinel value.
-
-	Raises:
-		ValueError: The supplied text cannot be parsed as a supported date.
-		TypeError: The supplied value is not a supported date type.
-	"""
-	if value is None:
-		return None
-	if isinstance( value, datetime ):
-		return value.date( )
-	if isinstance( value, date ):
-		return value
-	if isinstance( value, str ):
-		text = value.strip( )
-		if text.upper( ) in ('', 'NS', 'N/A', 'NA', 'NONE', 'NULL'):
-			return None
-		for date_format in ('%Y-%m-%d', '%m/%d/%Y', '%m/%d/%y'):
-			try:
-				return datetime.strptime( text, date_format ).date( )
-			except ValueError:
-				continue
-		raise ValueError( f'Unsupported date text: {text}' )
-	raise TypeError( f'Unsupported date value: {type( value ).__name__}' )
+__all__: tuple[ str, ... ] = (
+	'DB',
+	'Error',
+	'FederalHoliday',
+	'FiscalYear',
+	'FullTimeEquivalent',
+	'throw_if',
+	'to_date',
+	'weekday_number',
+)
 
 class DB( ):
 	"""SQLite data-access base class.
@@ -320,7 +238,8 @@ class FiscalYear( DB ):
 	Purpose:
 		Maps one ``BudgetFiscalYears`` database row to typed appropriation and calendar properties.
 		The entity combines persisted period-of-availability boundaries and workload measures with
-		runtime calendar calculations based on the system date captured during construction. It also
+		runtime calendar calculations based on a caller-selected or system date captured during
+		construction. It also
 		provides fiscal months, quarters, seven-day fiscal weeks, federal holidays, workdays, range
 		counts, text/HTML calendars, and database-compatible exports. Unless a method states otherwise,
 		date ranges include both boundaries and fiscal months follow the October-through-September
@@ -377,26 +296,32 @@ class FiscalYear( DB ):
 	range_end: Optional[ date ]
 	use_observed: Optional[ bool ]
 	
-	def __init__( self, fy: str | int, bpoa: str | int='', epoa: str | int='' ) -> None:
+	def __init__( self, fy: str | int, bpoa: str | int='', epoa: str | int='',
+		current_date: date | datetime | str | None=None ) -> None:
 		"""Initialize a budget fiscal-year entity.
 
 		Purpose:
 			Normalizes the fiscal-year and period-of-availability identifiers to strings, substitutes
 			``fy`` for an omitted ``bpoa`` or ``epoa``, and requires exactly one matching
 			``BudgetFiscalYears`` row. Database columns are converted to native numeric and date members.
-			The system date returned by ``datetime.today().date()`` is then captured for all current-date
-			calendar and fiscal progress calculations.
+			A caller-selected calculation date is normalized for reproducible calendar and fiscal progress
+			calculations. When it is omitted, the system date returned by
+			``datetime.today().date()`` is captured.
 
 		Args:
 			fy (str | int): Fiscal year used to retrieve the database row.
 			bpoa (str | int): Beginning period of availability. An empty value defaults to ``fy``.
 			epoa (str | int): Ending period of availability. An empty value defaults to ``fy``.
+			current_date (date | datetime | str | None): Date used by progress calculations. Supported
+				strings use ``YYYY-MM-DD``, ``MM/DD/YYYY``, or ``MM/DD/YY``. Defaults to today's date.
 
 		Returns:
 			None: Initialization does not return a value.
 
 		Raises:
-			ValueError: ``fy`` is empty or a retrieved field cannot be converted.
+			ValueError: ``fy`` is empty, ``current_date`` text is invalid, or a retrieved field cannot be
+				converted.
+			TypeError: ``current_date`` has an unsupported type.
 			Error: Table validation, database access, or exact-row retrieval fails.
 			KeyError: A required ``BudgetFiscalYears`` column is missing.
 			IndexError: The configured fiscal-year table is unavailable.
@@ -425,7 +350,8 @@ class FiscalYear( DB ):
 		self.compensable_hours = float( row[ 'CompensableHours' ] )
 		self.type = str( row[ 'Type' ] )
 		self.availability = str( row[ 'Availability' ] )
-		self.current_date = datetime.today( ).date( )
+		self.current_date = datetime.today( ).date( ) if current_date is None else to_date( current_date )
+		throw_if( 'current_date', self.current_date )
 		self.calendar_year = self.current_date.year
 		self.cy_start_date = date( self.calendar_year, 1, 1 )
 		self.cy_end_date = date( self.calendar_year, 12, 31 )
@@ -943,7 +869,8 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('count_holidays( self, **kwargs ) -> int')
+			ex.method = ('count_holidays( self, start: date | datetime, end: date | datetime, '
+			             'use_observed: bool = True ) -> int')
 			raise ex
 	
 	def count_workdays( self, start: date | datetime, end: date | datetime,
@@ -987,7 +914,8 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('count_workdays( self, **kwargs ) -> int')
+			ex.method = ('count_workdays( self, start: date | datetime, end: date | datetime, '
+			             'use_observed: bool = True ) -> int')
 			raise ex
 	
 	def calendar_bounds( self ) -> Tuple[ date, date ]:
@@ -1311,7 +1239,8 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = 'fiscal_month_html_calendar( self,**kwargs ) -> str'
+			ex.method = ('fiscal_month_html_calendar( self, fiscal_month: int, '
+			             'with_year: bool = True ) -> str')
 			raise ex
 	
 	def fiscal_year_html_calendar( self, width: int = 3 ) -> str:
@@ -1386,7 +1315,8 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('date_range_text_calendar( self, **kwargs ) -> str')
+			ex.method = ('date_range_text_calendar( self, start: date | datetime, '
+			             'end: date | datetime ) -> str')
 			raise ex
 	
 	def date_range_html_calendar( self, start: date | datetime, end: date | datetime,
@@ -1438,7 +1368,9 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('date_range_html_calendar( self, **kwargs ) -> str')
+			ex.method = ('date_range_html_calendar( self, start: date | datetime, '
+			             'end: date | datetime, width: int = 3, '
+			             'with_year: bool = True ) -> str')
 			raise ex
 	
 	def fiscal_quarter_number( self ) -> int:
@@ -1604,7 +1536,8 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = 'weekday_occurrences( self, **kwargs ) -> int'
+			ex.method = ('weekday_occurrences( self, fiscal_month: int, '
+			             'weekday: int | str ) -> int')
 			raise ex
 	
 	def contains_leap_day( self ) -> bool:
@@ -2104,7 +2037,8 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('holidays_by_month( self, **kwargs ) -> Dict[ str, List[ date ] ]')
+			ex.method = ('holidays_by_month( self, use_observed: bool = True ) -> '
+			             'Dict[ str, List[ date ] ]')
 			raise ex
 	
 	def holiday_dates_between( self, start: date | datetime, end: date | datetime,
@@ -2144,7 +2078,9 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('holiday_dates_between( self, **kwargs ) -> Dict[ str, date ]')
+			ex.method = ('holiday_dates_between( self, start: date | datetime, '
+			             'end: date | datetime, use_observed: bool = True ) -> '
+			             'Dict[ str, date ]')
 			raise ex
 	
 	def holidays_between( self, start: date | datetime, end: date | datetime,
@@ -2175,7 +2111,9 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('holidays_between( self, **kwargs ) -> Dict[ str, str ]')
+			ex.method = ('holidays_between( self, start: date | datetime, '
+			             'end: date | datetime, use_observed: bool = True ) -> '
+			             'Dict[ str, str ]')
 			raise ex
 	
 	def holidays_remaining( self, use_observed: bool = True ) -> int:

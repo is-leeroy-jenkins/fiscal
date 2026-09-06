@@ -50,6 +50,8 @@ fiscal periods, workday calculations, work hours (FTE) and actual or observed fe
 - Inclusive date-range counts constrained to the represented fiscal year
 - Holiday range results as native `date` values or ISO strings
 - Remaining holiday, workday, and weekend counts
+- OMB regular-method and pay-period-method civilian FTE calculations
+- Exact decimal FTE results and inverse FTE-to-hours planning calculations
 - Leap-day detection
 - Fiscal-year and federal-holiday dictionary exports
 - Backward-compatible aliases for existing calendar methods
@@ -65,11 +67,11 @@ pip install fiscal
 
 ```
 
-Runtime dependencies used by the audited implementation include `pandas` and `boogr`.
+Install the development dependencies when working from a source checkout:
 
 ```bash
 
-pip install pandas boogr
+pip install -e ".[dev]"
 
 ```
 
@@ -77,30 +79,15 @@ pip install pandas boogr
 
 ## ⚙️ Configuration
 
-Fiscal expects `config.py` to define the SQLite path and approved table names:
+Fiscal includes its SQLite data and diagnostic configuration. Override paths with environment
+variables only when an application needs external data or log storage:
 
-```python
+```bash
 
-DB_PATH: str
-TABLES: list[ str ]
-
-```
-
-```python
-
-TABLES = [
-    "BudgetFiscalYears",
-    "FederalHolidays",
-]
+DB_PATH=/path/to/fiscal.db
+LOG_PATH=/path/to/Exceptions.db
 
 ```
-
-The table order is significant:
-
-| Index | Table               |
-|------:|---------------------|
-|   `0` | `BudgetFiscalYears` |
-|   `1` | `FederalHolidays`   |
 
 <a id="quick-start"></a>
 
@@ -110,7 +97,7 @@ The table order is significant:
 
 from datetime import date
 
-from fiscal import FederalHoliday, FiscalYear
+from fiscal import FederalHoliday, FiscalYear, FullTimeEquivalent
 
 ```
 
@@ -157,6 +144,28 @@ print( fy.type )
 print( fy.availability )
 
 ```
+
+### Full-Time Equivalents
+
+Use OMB's regular method for October-through-September hours and its pay-period method for the 26
+selected biweekly pay periods:
+
+```python
+
+fte = FullTimeEquivalent( 2026 )
+
+regular_result = fte.regular_method( 1044 )
+pay_period_result = fte.pay_period_method( 1040 )
+
+print( fte.compensable_days )   # 261
+print( fte.compensable_hours )  # Decimal('2088')
+print( regular_result )         # Decimal('0.5')
+print( pay_period_result )      # Decimal('0.5')
+
+```
+
+See the [FTE guide](https://is-leeroy-jenkins.github.io/Fiscal/user-guide/full-time-equivalents/)
+for qualifying-hour rules and the 27-pay-period exception.
 
 Multi-year availability:
 
@@ -381,7 +390,7 @@ print( holidays.is_weekend( date( 2026, 7, 4 ) ) )
 
 ```python
 
-from fiscal import DB, FederalHoliday, FiscalYear, throw_if, to_date
+from fiscal import DB, Error, FederalHoliday, FiscalYear, FullTimeEquivalent, throw_if, to_date
 
 ```
 
