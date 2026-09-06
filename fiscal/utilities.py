@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import calendar
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from typing import Dict, Optional
 
 
@@ -77,6 +78,37 @@ def throw_if( name: str, value: object ) -> None:
 		raise ValueError( f'Argument "{name}" cannot be empty!' )
 	if isinstance( value, (list, tuple, dict, set) ) and len( value ) == 0:
 		raise ValueError( f'Argument "{name}" cannot be empty!' )
+
+
+def to_decimal( name: str, value: int | float | Decimal ) -> Decimal:
+	"""Convert a finite numeric argument to ``Decimal`` without binary-float artifacts.
+
+	Purpose:
+		Validates a required numeric argument and converts its text representation to ``Decimal``.
+		This provides one consistent conversion contract for FTE and date-range hour calculations.
+
+	Args:
+		name (str): Argument name used in validation and error messages.
+		value (int | float | Decimal): Finite numeric value to convert.
+
+	Returns:
+		Decimal: Exact decimal representation of the supplied numeric value.
+
+	Raises:
+		ValueError: ``name`` or ``value`` is empty, or ``value`` is not finite.
+		TypeError: ``value`` is Boolean or not a supported numeric type.
+	"""
+	throw_if( 'name', name )
+	throw_if( name, value )
+	if isinstance( value, bool ) or not isinstance( value, (int, float, Decimal) ):
+		raise TypeError( f'{name.replace( "_", " " ).title( )} must be numeric.' )
+	try:
+		decimal_value = Decimal( str( value ) )
+	except InvalidOperation as ex:
+		raise ValueError( f'{name.replace( "_", " " ).title( )} must be finite.' ) from ex
+	if not decimal_value.is_finite( ):
+		raise ValueError( f'{name.replace( "_", " " ).title( )} must be finite.' )
+	return decimal_value
 
 
 def to_date( value: date | datetime | str | None ) -> Optional[ date ]:

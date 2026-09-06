@@ -3,7 +3,7 @@ requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "fiscal"
+name = "fiscal-py"
 version = "0.1.0"
 description = "U.S. federal fiscal-year, holiday, workday, and FTE calculations."
 readme = "README.md"
@@ -39,6 +39,7 @@ docs = [
 ]
 dev = [
     "black>=25.0",
+    "build>=1.2",
     "mkdocs>=1.6",
     "mkdocs-material>=9.6",
     "mkdocs-autorefs>=1.4",
@@ -53,11 +54,11 @@ Repository = "https://github.com/is-leeroy-jenkins/fiscal"
 Issues = "https://github.com/is-leeroy-jenkins/fiscal/issues"
 
 [tool.setuptools]
-packages = ["fiscal"]
+packages = ["fiscal", "fiscal.sqlite"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-fiscal = ["sqlite/data.db"]
+"fiscal.sqlite" = ["data.db"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

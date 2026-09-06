@@ -2,10 +2,12 @@
 
 import sqlite3
 from datetime import date, datetime
+from decimal import Decimal
 
 import pytest
 
-from fiscal import FiscalYear, FullTimeEquivalent, throw_if, to_date, weekday_number
+from fiscal import (Error, FiscalYear, FullTimeEquivalent, throw_if, to_date, to_decimal,
+	weekday_number)
 from fiscal import config
 
 
@@ -69,3 +71,46 @@ def test_weekday_names_and_numbers( ) -> None:
 	assert weekday_number( 6 ) == 6
 	with pytest.raises( ValueError ):
 		weekday_number( 'Funday' )
+
+
+def test_compensable_hours_between_includes_weekday_holidays( ) -> None:
+	"""Verify the OMB partial-range denominator retains weekday federal holidays."""
+	fiscal_year = FiscalYear( 2026, current_date='2026-07-15' )
+
+	assert fiscal_year.compensable_hours_between(
+		'2026-07-01', '2026-07-31' ) == Decimal( '184' )
+	assert fiscal_year.compensable_hours_between(
+		fiscal_year.start_date, fiscal_year.end_date ) == Decimal( '2088' )
+
+
+def test_work_hours_between_excludes_observed_holidays( ) -> None:
+	"""Verify operational work hours distinguish observed and statutory holiday dates."""
+	fiscal_year = FiscalYear( 2026, current_date='2026-07-15' )
+
+	assert fiscal_year.work_hours_between(
+		'2026-07-03', '2026-07-04' ) == Decimal( '0' )
+	assert fiscal_year.work_hours_between(
+		'2026-07-03', '2026-07-04', use_observed=False ) == Decimal( '8' )
+
+
+def test_range_hours_support_alternate_daily_schedules( ) -> None:
+	"""Verify date-range hours preserve fractional daily schedules exactly."""
+	fiscal_year = FiscalYear( 2026, current_date='2026-07-15' )
+
+	assert fiscal_year.work_hours_between(
+		'2026-07-01', '2026-07-31', hours_per_day=7.5 ) == Decimal( '165.0' )
+
+
+@pytest.mark.parametrize( 'value', [0, -1, True, '8', float( 'nan' )] )
+def test_range_hours_reject_invalid_daily_hours( value: object ) -> None:
+	"""Verify empty, invalid, and nonpositive daily-hour values cannot produce results."""
+	fiscal_year = FiscalYear( 2026, current_date='2026-07-15' )
+
+	with pytest.raises( Error ):
+		fiscal_year.compensable_hours_between(
+			'2026-07-01', '2026-07-31', hours_per_day=value )
+
+
+def test_to_decimal_preserves_numeric_text_representation( ) -> None:
+	"""Verify shared numeric conversion avoids binary floating-point expansion."""
+	assert to_decimal( 'hours', 7.5 ) == Decimal( '7.5' )

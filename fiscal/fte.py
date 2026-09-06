@@ -9,10 +9,10 @@ headcounts and workload-planning estimates of available workhours.
 from __future__ import annotations
 
 from datetime import date, timedelta
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Dict
 
-from .utilities import throw_if
+from .utilities import throw_if, to_decimal
 
 
 class FullTimeEquivalent( ):
@@ -76,12 +76,12 @@ class FullTimeEquivalent( ):
 		if fiscal_year < 2 or fiscal_year > 9999:
 			raise ValueError( 'Fiscal year must be between 2 and 9999.' )
 		self.fiscal_year: int = fiscal_year
-		self.hours_per_day: Decimal = self._decimal_value( 'hours_per_day', hours_per_day )
+		self.hours_per_day: Decimal = to_decimal( 'hours_per_day', hours_per_day )
 		if self.hours_per_day <= 0:
 			raise ValueError( 'Hours per day must be greater than zero.' )
 		self.start_date: date = date( fiscal_year - 1, 10, 1 )
 		self.end_date: date = date( fiscal_year, 9, 30 )
-		self.compensable_days: int = self._count_weekdays( )
+		self.compensable_days: int = self.count_weekdays( )
 		self.compensable_hours: Decimal = Decimal( self.compensable_days ) * self.hours_per_day
 		self.method: str = ''
 		self.regular_hours: Decimal = Decimal( '0' )
@@ -107,7 +107,7 @@ class FullTimeEquivalent( ):
 			ValueError: ``regular_hours`` is empty or negative.
 			TypeError: ``regular_hours`` is Boolean or not numeric.
 		"""
-		hours = self._nonnegative_hours( regular_hours )
+		hours = self.nonnegative_hours( regular_hours )
 		self.method = 'regular'
 		self.regular_hours = hours
 		self.fte = hours / self.compensable_hours
@@ -133,7 +133,7 @@ class FullTimeEquivalent( ):
 			ValueError: ``selected_regular_hours`` is empty or negative.
 			TypeError: ``selected_regular_hours`` is Boolean or not numeric.
 		"""
-		hours = self._nonnegative_hours( selected_regular_hours,
+		hours = self.nonnegative_hours( selected_regular_hours,
 			name='selected_regular_hours' )
 		self.method = 'pay_period'
 		self.regular_hours = hours
@@ -157,7 +157,7 @@ class FullTimeEquivalent( ):
 			ValueError: ``fte`` is empty or negative.
 			TypeError: ``fte`` is Boolean or not numeric.
 		"""
-		fte_value = self._nonnegative_decimal( 'fte', fte )
+		fte_value = self.nonnegative_decimal( 'fte', fte )
 		return fte_value * self.compensable_hours
 
 	def hours_for_pay_period_fte( self, fte: int | float | Decimal ) -> Decimal:
@@ -177,7 +177,7 @@ class FullTimeEquivalent( ):
 			ValueError: ``fte`` is empty or negative.
 			TypeError: ``fte`` is Boolean or not numeric.
 		"""
-		fte_value = self._nonnegative_decimal( 'fte', fte )
+		fte_value = self.nonnegative_decimal( 'fte', fte )
 		return fte_value * self.PAY_PERIOD_COMPENSABLE_HOURS
 
 	def to_dict( self ) -> Dict[ str, object ]:
@@ -204,7 +204,7 @@ class FullTimeEquivalent( ):
 			'fte': str( self.fte ),
 		}
 
-	def _count_weekdays( self ) -> int:
+	def count_weekdays( self ) -> int:
 		"""Count Monday-through-Friday days in the fiscal-year date range.
 
 		Returns:
@@ -215,32 +215,7 @@ class FullTimeEquivalent( ):
 			if (self.start_date + timedelta( days=offset )).weekday( ) < 5 )
 
 	@classmethod
-	def _decimal_value( cls, name: str, value: int | float | Decimal ) -> Decimal:
-		"""Convert a supported numeric input to an exact decimal representation.
-
-		Args:
-			name (str): Argument name used in validation messages.
-			value (int | float | Decimal): Numeric value to convert.
-
-		Returns:
-			Decimal: Decimal created from the input's text representation.
-
-		Raises:
-			TypeError: The value is Boolean or not a supported numeric type.
-			ValueError: The value is not finite.
-		"""
-		if isinstance( value, bool ) or not isinstance( value, (int, float, Decimal) ):
-			raise TypeError( f'{name.replace( "_", " " ).title( )} must be numeric.' )
-		try:
-			decimal_value = Decimal( str( value ) )
-		except InvalidOperation as ex:
-			raise ValueError( f'{name.replace( "_", " " ).title( )} must be finite.' ) from ex
-		if not decimal_value.is_finite( ):
-			raise ValueError( f'{name.replace( "_", " " ).title( )} must be finite.' )
-		return decimal_value
-
-	@classmethod
-	def _nonnegative_decimal( cls, name: str,
+	def nonnegative_decimal( cls, name: str,
 		value: int | float | Decimal ) -> Decimal:
 		"""Validate and normalize a nonnegative decimal argument.
 
@@ -255,14 +230,13 @@ class FullTimeEquivalent( ):
 			ValueError: The value is empty, non-finite, or negative.
 			TypeError: The value is Boolean or not numeric.
 		"""
-		throw_if( name, value )
-		decimal_value = cls._decimal_value( name, value )
+		decimal_value = to_decimal( name, value )
 		if decimal_value < 0:
 			raise ValueError( f'{name.replace( "_", " " ).title( )} cannot be negative.' )
 		return decimal_value
 
 	@classmethod
-	def _nonnegative_hours( cls, value: int | float | Decimal,
+	def nonnegative_hours( cls, value: int | float | Decimal,
 		name: str='regular_hours' ) -> Decimal:
 		"""Validate and normalize an hours argument.
 
@@ -277,4 +251,4 @@ class FullTimeEquivalent( ):
 			ValueError: The value is empty, non-finite, or negative.
 			TypeError: The value is Boolean or not numeric.
 		"""
-		return cls._nonnegative_decimal( name, value )
+		return cls.nonnegative_decimal( name, value )

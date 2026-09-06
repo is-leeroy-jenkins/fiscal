@@ -45,12 +45,13 @@ from __future__ import annotations
 import calendar
 import sqlite3
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 import pandas as pd
 from . import config as cfg
 from .boogr import Error
 from .fte import FullTimeEquivalent
-from .utilities import throw_if, to_date, weekday_number
+from .utilities import throw_if, to_date, to_decimal, weekday_number
 
 __all__: tuple[ str, ... ] = (
 	'DB',
@@ -60,6 +61,7 @@ __all__: tuple[ str, ... ] = (
 	'FullTimeEquivalent',
 	'throw_if',
 	'to_date',
+	'to_decimal',
 	'weekday_number',
 )
 
@@ -401,7 +403,8 @@ class FiscalYear( DB ):
 			'holidays_remaining', 'workdays_remaining', 'weekends_remaining', 'contains_leap_day',
 			'leap_days_in_availability', 'current_weekday_name', 'count_weekends',
 			'count_holidays',
-			'count_workdays', 'fiscal_bounds', 'is_fiscal_start_year', 'is_fiscal_end_year',
+			'count_workdays', 'compensable_hours_between', 'work_hours_between', 'fiscal_range', 'fiscal_bounds',
+			'is_fiscal_start_year', 'is_fiscal_end_year',
 			'is_calendar_start_year', 'is_calendar_end_date', 'to_dict' ]
 	
 	@property
@@ -717,7 +720,7 @@ class FiscalYear( DB ):
 			ex.method = 'fiscal_percent_elapsed( self ) -> float'
 			raise ex
 	
-	def _fiscal_range( self, start: date | datetime, end: date | datetime ) -> Tuple[ date, date ]:
+	def fiscal_range( self, start: date | datetime, end: date | datetime ) -> Tuple[ date, date ]:
 		"""Validate and constrain an inclusive range to the represented fiscal period.
 
 		Purpose:
@@ -771,7 +774,7 @@ class FiscalYear( DB ):
 			Error: Range validation, conversion, or iteration fails; the original exception is retained.
 		"""
 		try:
-			range_start, range_end = self._fiscal_range( start, end )
+			range_start, range_end = self.fiscal_range( start, end )
 			self.range_start = range_start
 			self.range_end = range_end
 			count = 0
@@ -857,7 +860,7 @@ class FiscalYear( DB ):
 			Error: Range validation or holiday-row retrieval fails.
 		"""
 		try:
-			range_start, range_end = self._fiscal_range( start, end )
+			range_start, range_end = self.fiscal_range( start, end )
 			self.range_start = range_start
 			self.range_end = range_end
 			self.use_observed = use_observed
@@ -896,7 +899,7 @@ class FiscalYear( DB ):
 			Error: Range validation, holiday-row retrieval, or date iteration fails.
 		"""
 		try:
-			range_start, range_end = self._fiscal_range( start, end )
+			range_start, range_end = self.fiscal_range( start, end )
 			self.range_start = range_start
 			self.range_end = range_end
 			self.use_observed = use_observed
@@ -916,6 +919,91 @@ class FiscalYear( DB ):
 			ex.cause = 'FiscalYear'
 			ex.method = ('count_workdays( self, start: date | datetime, end: date | datetime, '
 			             'use_observed: bool = True ) -> int')
+			raise ex
+
+	def compensable_hours_between( self, start: date | datetime, end: date | datetime,
+		hours_per_day: int | float | Decimal=8 ) -> Decimal:
+		"""Calculate OMB compensable hours in an inclusive fiscal-period range.
+
+		Purpose:
+			Constrains the requested dates to the represented fiscal period, counts every
+			Monday-through-Friday date, and multiplies that count by ``hours_per_day``. Federal
+			holidays remain compensable and therefore do not reduce this result. This is the partial-range
+			equivalent of the regular-method denominator defined by OMB Circular No. A-11, section 85.
+
+		Args:
+			start (date | datetime): Requested inclusive lower boundary.
+			end (date | datetime): Requested inclusive upper boundary.
+			hours_per_day (int | float | Decimal): Positive straight-time hours assigned to each
+				compensable weekday. Defaults to 8.
+
+		Returns:
+			Decimal: Unrounded compensable hours for weekdays in the constrained inclusive range.
+
+		Raises:
+			Error: A boundary is invalid, the range does not intersect the represented fiscal period,
+				or ``hours_per_day`` is empty, nonnumeric, non-finite, or not positive.
+		"""
+		try:
+			range_start, range_end = self.fiscal_range( start, end )
+			day_hours = to_decimal( 'hours_per_day', hours_per_day )
+			if day_hours <= 0:
+				raise ValueError( 'Hours per day must be greater than zero.' )
+			self.range_start = range_start
+			self.range_end = range_end
+			count = 0
+			current = range_start
+			while current <= range_end:
+				if current.weekday( ) < 5:
+					count += 1
+				current += timedelta( days=1 )
+			return Decimal( count ) * day_hours
+		except Exception as e:
+			ex = Error( e )
+			ex.module = 'fiscal'
+			ex.cause = 'FiscalYear'
+			ex.method = ('compensable_hours_between( self, start: date | datetime, end: date | '
+			             'datetime, hours_per_day: int | float | Decimal = 8 ) -> Decimal')
+			raise ex
+
+	def work_hours_between( self, start: date | datetime, end: date | datetime,
+		hours_per_day: int | float | Decimal=8, use_observed: bool=True ) -> Decimal:
+		"""Calculate federal work hours in an inclusive fiscal-period range.
+
+		Purpose:
+			Counts Monday-through-Friday dates after excluding configured federal holidays, then
+			multiplies the resulting workday count by ``hours_per_day``. Observed holiday dates are
+			excluded by default. Unlike ``compensable_hours_between``, this operational work-hours
+			measure reduces the result for holidays.
+
+		Args:
+			start (date | datetime): Requested inclusive lower boundary.
+			end (date | datetime): Requested inclusive upper boundary.
+			hours_per_day (int | float | Decimal): Positive scheduled hours assigned to each workday.
+				Defaults to 8.
+			use_observed (bool): Exclude observed holiday dates when ``True``; exclude actual statutory
+				dates when ``False``.
+
+		Returns:
+			Decimal: Unrounded scheduled work hours for non-holiday weekdays in the constrained range.
+
+		Raises:
+			Error: A boundary is invalid, holiday data cannot be retrieved, or ``hours_per_day`` is empty,
+				nonnumeric, non-finite, or not positive.
+		"""
+		try:
+			day_hours = to_decimal( 'hours_per_day', hours_per_day )
+			if day_hours <= 0:
+				raise ValueError( 'Hours per day must be greater than zero.' )
+			workdays = self.count_workdays( start, end, use_observed=use_observed )
+			return Decimal( workdays ) * day_hours
+		except Exception as e:
+			ex = Error( e )
+			ex.module = 'fiscal'
+			ex.cause = 'FiscalYear'
+			ex.method = ('work_hours_between( self, start: date | datetime, end: date | datetime, '
+			             'hours_per_day: int | float | Decimal = 8, use_observed: bool = True ) -> '
+			             'Decimal')
 			raise ex
 	
 	def calendar_bounds( self ) -> Tuple[ date, date ]:
@@ -1298,7 +1386,7 @@ class FiscalYear( DB ):
 			Error: The date range is invalid or the text calendars cannot be rendered.
 		"""
 		try:
-			range_start, range_end = self._fiscal_range( start, end )
+			range_start, range_end = self.fiscal_range( start, end )
 			text_calendar = calendar.TextCalendar( firstweekday=calendar.MONDAY )
 			year = range_start.year
 			month = range_start.month
@@ -1347,7 +1435,7 @@ class FiscalYear( DB ):
 				raise TypeError( 'Width must be an integer.' )
 			if width < 1 or width > 12:
 				raise ValueError( 'Width must be between 1 and 12.' )
-			range_start, range_end = self._fiscal_range( start, end )
+			range_start, range_end = self.fiscal_range( start, end )
 			html_calendar = calendar.HTMLCalendar( firstweekday=calendar.MONDAY )
 			year = range_start.year
 			month = range_start.month
@@ -2063,7 +2151,7 @@ class FiscalYear( DB ):
 			Error: Range validation, holiday-row retrieval, or date comparison fails.
 		"""
 		try:
-			range_start, range_end = self._fiscal_range( start, end )
+			range_start, range_end = self.fiscal_range( start, end )
 			self.range_start = range_start
 			self.range_end = range_end
 			self.use_observed = use_observed
