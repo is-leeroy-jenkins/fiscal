@@ -179,7 +179,7 @@ print( pay_period_result )      # Decimal('0.5')
 
 ```
 
-See the [FTE guide](https://is-leeroy-jenkins.github.io/Fiscal/user-guide/full-time-equivalents/)
+See the [FTE guide]([https://is-leeroy-jenkins.github.io/Fiscal/user-guide/full-time-equivalents/](https://github.com/is-leeroy-jenkins/fiscal/blob/master/resources/USER_GUIDE.md#calculate-full-time-equivalents))
 for qualifying-hour rules and the 27-pay-period exception.
 
 Multi-year availability:
