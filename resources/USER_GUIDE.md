@@ -150,6 +150,10 @@ summary = {
         start=start_date,
         end=end_date,
     ),
+	"FTE": fy.fte_between(
+		start=start_date,
+		end=end_date,
+	),
 }
 
 print( summary )
@@ -175,6 +179,25 @@ actual_workday_count = fy.count_workdays(
 OMB-consistent partial-period denominator. `work_hours_between()` excludes holidays and returns
 scheduled operational hours. Both default to eight hours per day, accept an alternate positive
 `hours_per_day`, and return `Decimal`.
+
+`fte_between()` divides compensable range hours by the selected fiscal year's
+`CompensableHours` value and returns the annual FTE represented by that period. It does not annualize
+a partial-period result.
+
+Elapsed and remaining hours use the `current_date` supplied to `FiscalYear`:
+
+```python
+hours_status = {
+    "CompensableElapsed": fy.compensable_hours_elapsed( ),
+    "CompensableRemaining": fy.compensable_hours_remaining( ),
+    "WorkElapsed": fy.work_hours_elapsed( ),
+    "WorkRemaining": fy.work_hours_remaining( ),
+}
+```
+
+Elapsed methods exclude `current_date`; remaining methods include it when it lies within the fiscal
+year. Compensable methods include weekday federal holidays, while work-hour methods exclude observed
+holidays by default.
 
 A reversed range or a range that does not intersect the fiscal year raises `boogr.Error`.
 

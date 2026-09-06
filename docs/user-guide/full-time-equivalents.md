@@ -53,10 +53,17 @@ hours = fiscal_year.compensable_hours_between(
     start="2026-07-01",
     end="2026-07-31",
 )
+
+range_fte = fiscal_year.fte_between(
+    start="2026-07-01",
+    end="2026-07-31",
+)
 ```
 
-This method includes weekday holidays. Use `FiscalYear.work_hours_between()` when the required result
-is scheduled operational hours after excluding federal holidays.
+Both methods include weekday holidays. `fte_between()` divides range hours by the fiscal-year
+`CompensableHours` value and returns the annual FTE represented by that period. It does not annualize
+a partial period. Use `FiscalYear.work_hours_between()` when the required result is scheduled
+operational hours after excluding federal holidays.
 
 ## Pay-period method
 

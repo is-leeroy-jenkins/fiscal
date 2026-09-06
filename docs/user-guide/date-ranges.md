@@ -47,6 +47,22 @@ part_time_work_hours = fy.work_hours_between(
 )
 ```
 
+## Calculate FTE
+
+Calculate the annual regular-method FTE represented by the range:
+
+```python
+range_fte = fy.fte_between(
+    start=start_date,
+    end=end_date,
+)
+```
+
+`fte_between()` divides compensable range hours by the database-provided `CompensableHours` value
+for the selected fiscal year. The result is the portion of one annual FTE represented by the range;
+it is not annualized to make a partial period equal one FTE. Supply `hours_per_day=6` to calculate
+the annual FTE represented by a six-hour-per-day schedule.
+
 ## Return Holiday Dates
 
 Preferred native-date contract:

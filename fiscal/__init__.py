@@ -1,14 +1,14 @@
 '''
     ******************************************************************************************
       Assembly:                fiscal
-      Filename:                init.py
+      Filename:                __init__.py
       Author:                  Terry D. Eppler
       Created:                 08-26-2025
 
       Last Modified By:        Terry D. Eppler
-      Last Modified On:        08-26-2025
+      Last Modified On:        09-06-2026
     ******************************************************************************************
-    <copyright file="init.py" company="Terry D. Eppler">
+    <copyright file="__init__.py" company="Terry D. Eppler">
 
          Budget Fiscal Year Tools
 
@@ -36,7 +36,13 @@
 
     </copyright>
     <summary>
-        init.py
+        Public package API and SQLite-backed fiscal-year domain models.
+
+        Provides fiscal and calendar period calculations, actual and observed federal holidays,
+        inclusive date-range analysis, OMB compensable-hour and annual FTE calculations,
+        holiday-adjusted work hours, progress measures, and text or HTML calendar rendering.
+        Public utilities and the FullTimeEquivalent calculator are re-exported here so installed
+        consumers can use the documented ``import fiscal`` package contract.
     </summary>
     ******************************************************************************************
 '''
@@ -394,7 +400,9 @@ class FiscalYear( DB ):
 			'holidays_remaining', 'workdays_remaining', 'weekends_remaining', 'contains_leap_day',
 			'leap_days_in_availability', 'current_weekday_name', 'count_weekends',
 			'count_holidays',
-			'count_workdays', 'compensable_hours_between', 'work_hours_between', 'fiscal_range', 'fiscal_bounds',
+			'count_workdays', 'compensable_hours_between', 'work_hours_between', 'fte_between',
+			'compensable_hours_elapsed', 'compensable_hours_remaining', 'work_hours_elapsed',
+			'work_hours_remaining', 'fiscal_range', 'fiscal_bounds',
 			'is_fiscal_start_year', 'is_fiscal_end_year',
 			'is_calendar_start_year', 'is_calendar_end_date', 'to_dict' ]
 	
@@ -995,6 +1003,195 @@ class FiscalYear( DB ):
 			ex.method = ('work_hours_between( self, start: date | datetime, end: date | datetime, '
 			             'hours_per_day: int | float | Decimal = 8, use_observed: bool = True ) -> '
 			             'Decimal')
+			raise ex
+
+	def fte_between( self, start: date | datetime, end: date | datetime,
+		hours_per_day: int | float | Decimal=8 ) -> Decimal:
+		"""Calculate the annual regular-method FTE represented by an inclusive date range.
+
+		Purpose:
+			Divides compensable hours in the constrained range by the database-provided
+			``CompensableHours`` value for the represented fiscal year. Range hours count every
+			Monday-through-Friday date, including federal holidays. The result is an annual budgetary
+			FTE fraction rather than an annualized rate for the shorter period. A full fiscal year at
+			eight hours per day therefore returns one FTE when the database denominator is based on an
+			eight-hour schedule.
+
+		Args:
+			start (date | datetime): Requested inclusive lower boundary.
+			end (date | datetime): Requested inclusive upper boundary.
+			hours_per_day (int | float | Decimal): Positive scheduled hours assigned to each
+				compensable weekday. Defaults to 8.
+
+		Returns:
+			Decimal: Unrounded annual FTE represented by scheduled hours in the constrained range.
+
+		Raises:
+			Error: A boundary is invalid, the range does not intersect the represented fiscal period,
+				or either the daily schedule or annual compensable-hours denominator is invalid.
+		"""
+		try:
+			range_hours = self.compensable_hours_between( start, end, hours_per_day )
+			annual_hours = to_decimal( 'compensable_hours', self.compensable_hours )
+			if annual_hours <= 0:
+				raise ValueError( 'Compensable hours must be greater than zero.' )
+			return range_hours / annual_hours
+		except Exception as e:
+			ex = Error( e )
+			ex.module = 'fiscal'
+			ex.cause = 'FiscalYear'
+			ex.method = ('fte_between( self, start: date | datetime, end: date | datetime, '
+			             'hours_per_day: int | float | Decimal = 8 ) -> Decimal')
+			raise ex
+
+	def compensable_hours_elapsed( self,
+		hours_per_day: int | float | Decimal=8 ) -> Decimal:
+		"""Return compensable hours elapsed before the fiscal-year calculation date.
+
+		Purpose:
+			Counts Monday-through-Friday dates from the represented fiscal-year start through the day
+			before ``current_date`` and multiplies by ``hours_per_day``. Federal holidays remain
+			compensable. Dates on or before the fiscal-year start return zero; dates after fiscal-year
+			end return the full-year compensable-hour total.
+
+		Args:
+			hours_per_day (int | float | Decimal): Positive scheduled hours assigned to each
+				compensable weekday. Defaults to 8.
+
+		Returns:
+			Decimal: Unrounded compensable hours elapsed before ``current_date``.
+
+		Raises:
+			Error: The calculation date or daily schedule is invalid.
+		"""
+		try:
+			day_hours = to_decimal( 'hours_per_day', hours_per_day )
+			if day_hours <= 0:
+				raise ValueError( 'Hours per day must be greater than zero.' )
+			if self.current_date <= self.start_date:
+				return Decimal( '0' )
+			range_end = min( self.current_date - timedelta( days=1 ), self.end_date )
+			return self.compensable_hours_between( self.start_date, range_end, day_hours )
+		except Exception as e:
+			ex = Error( e )
+			ex.module = 'fiscal'
+			ex.cause = 'FiscalYear'
+			ex.method = ('compensable_hours_elapsed( self, hours_per_day: int | float | '
+			             'Decimal = 8 ) -> Decimal')
+			raise ex
+
+	def compensable_hours_remaining( self,
+		hours_per_day: int | float | Decimal=8 ) -> Decimal:
+		"""Return compensable hours remaining in the represented fiscal year.
+
+		Purpose:
+			Counts Monday-through-Friday dates from ``current_date`` through the fiscal-year end and
+			multiplies by ``hours_per_day``. The current date is included when it falls within the
+			represented fiscal year. Future fiscal years return the full-year total; completed fiscal
+			years return zero. Federal holidays remain compensable.
+
+		Args:
+			hours_per_day (int | float | Decimal): Positive scheduled hours assigned to each
+				compensable weekday. Defaults to 8.
+
+		Returns:
+			Decimal: Unrounded compensable hours remaining from ``current_date``.
+
+		Raises:
+			Error: The calculation date or daily schedule is invalid.
+		"""
+		try:
+			day_hours = to_decimal( 'hours_per_day', hours_per_day )
+			if day_hours <= 0:
+				raise ValueError( 'Hours per day must be greater than zero.' )
+			if self.current_date > self.end_date:
+				return Decimal( '0' )
+			range_start = max( self.current_date, self.start_date )
+			return self.compensable_hours_between( range_start, self.end_date, day_hours )
+		except Exception as e:
+			ex = Error( e )
+			ex.module = 'fiscal'
+			ex.cause = 'FiscalYear'
+			ex.method = ('compensable_hours_remaining( self, hours_per_day: int | float | '
+			             'Decimal = 8 ) -> Decimal')
+			raise ex
+
+	def work_hours_elapsed( self, hours_per_day: int | float | Decimal=8,
+		use_observed: bool=True ) -> Decimal:
+		"""Return federal work hours elapsed before the fiscal-year calculation date.
+
+		Purpose:
+			Counts non-holiday Monday-through-Friday dates from the represented fiscal-year start
+			through the day before ``current_date`` and multiplies by ``hours_per_day``. Observed
+			holiday dates are excluded by default. Dates on or before fiscal-year start return zero;
+			dates after fiscal-year end return the full-year work-hour total.
+
+		Args:
+			hours_per_day (int | float | Decimal): Positive scheduled hours assigned to each workday.
+				Defaults to 8.
+			use_observed (bool): Exclude observed holidays when ``True``; exclude actual statutory
+				dates when ``False``.
+
+		Returns:
+			Decimal: Unrounded non-holiday work hours elapsed before ``current_date``.
+
+		Raises:
+			Error: The calculation date, daily schedule, or holiday data is invalid.
+		"""
+		try:
+			day_hours = to_decimal( 'hours_per_day', hours_per_day )
+			if day_hours <= 0:
+				raise ValueError( 'Hours per day must be greater than zero.' )
+			if self.current_date <= self.start_date:
+				return Decimal( '0' )
+			range_end = min( self.current_date - timedelta( days=1 ), self.end_date )
+			return self.work_hours_between( self.start_date, range_end, day_hours,
+				use_observed )
+		except Exception as e:
+			ex = Error( e )
+			ex.module = 'fiscal'
+			ex.cause = 'FiscalYear'
+			ex.method = ('work_hours_elapsed( self, hours_per_day: int | float | Decimal = 8, '
+			             'use_observed: bool = True ) -> Decimal')
+			raise ex
+
+	def work_hours_remaining( self, hours_per_day: int | float | Decimal=8,
+		use_observed: bool=True ) -> Decimal:
+		"""Return federal work hours remaining in the represented fiscal year.
+
+		Purpose:
+			Counts non-holiday Monday-through-Friday dates from ``current_date`` through fiscal-year
+			end and multiplies by ``hours_per_day``. The current date is included when it falls in the
+			represented fiscal year. Observed holidays are excluded by default. Future fiscal years
+			return their full work-hour total; completed fiscal years return zero.
+
+		Args:
+			hours_per_day (int | float | Decimal): Positive scheduled hours assigned to each workday.
+				Defaults to 8.
+			use_observed (bool): Exclude observed holidays when ``True``; exclude actual statutory
+				dates when ``False``.
+
+		Returns:
+			Decimal: Unrounded non-holiday work hours remaining from ``current_date``.
+
+		Raises:
+			Error: The calculation date, daily schedule, or holiday data is invalid.
+		"""
+		try:
+			day_hours = to_decimal( 'hours_per_day', hours_per_day )
+			if day_hours <= 0:
+				raise ValueError( 'Hours per day must be greater than zero.' )
+			if self.current_date > self.end_date:
+				return Decimal( '0' )
+			range_start = max( self.current_date, self.start_date )
+			return self.work_hours_between( range_start, self.end_date, day_hours,
+				use_observed )
+		except Exception as e:
+			ex = Error( e )
+			ex.module = 'fiscal'
+			ex.cause = 'FiscalYear'
+			ex.method = ('work_hours_remaining( self, hours_per_day: int | float | Decimal = 8, '
+			             'use_observed: bool = True ) -> Decimal')
 			raise ex
 	
 	def calendar_bounds( self ) -> Tuple[ date, date ]:
