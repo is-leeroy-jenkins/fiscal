@@ -283,6 +283,7 @@ The fiscal-year database record and the calculation date are independent. A date
 - `count_workdays()`
 - `compensable_hours_between()`
 - `work_hours_between()`
+- `fte_between()`
 - `holiday_dates_between()`
 - `holidays_between()`
 
@@ -295,6 +296,14 @@ It:
 5. rejects ranges with no fiscal-year intersection
 
 All public range methods are inclusive.
+
+Hour-progress methods use `current_date` as their partition boundary:
+
+- `compensable_hours_elapsed()` and `work_hours_elapsed()` exclude `current_date`.
+- `compensable_hours_remaining()` and `work_hours_remaining()` include `current_date` when it lies
+  inside the represented fiscal period.
+- Compensable methods retain weekday federal holidays; work-hour methods exclude observed holidays
+  unless `use_observed=False` is supplied.
 
 ## Calendar and Fiscal Progress
 

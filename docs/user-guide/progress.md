@@ -41,6 +41,22 @@ fiscal_status = {
 }
 ```
 
+## Fiscal Hour Progress
+
+```python
+hour_status = {
+    "CompensableHoursElapsed": fy.compensable_hours_elapsed( ),
+    "CompensableHoursRemaining": fy.compensable_hours_remaining( ),
+    "WorkHoursElapsed": fy.work_hours_elapsed( ),
+    "WorkHoursRemaining": fy.work_hours_remaining( ),
+}
+```
+
+Elapsed-hour methods count through the day before `current_date`. Remaining-hour methods count from
+`current_date` through fiscal-year end, including the current date when it is inside the fiscal
+year. Compensable hours include weekday federal holidays; work hours exclude observed holidays by
+default. All four methods accept a positive `hours_per_day` and return `Decimal`.
+
 ## Boundary Checks
 
 ```python

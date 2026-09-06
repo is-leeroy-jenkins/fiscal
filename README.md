@@ -49,7 +49,8 @@ federal-holiday handling.
 - Monthly weekday, weekend, workday, and holiday summaries
 - Actual and observed federal-holiday dates
 - Inclusive date-range counts constrained to the represented fiscal year
-- Compensable-hour and federal work-hour calculations for inclusive date ranges
+- Compensable-hour, federal work-hour, and annual FTE calculations for inclusive date ranges
+- Elapsed and remaining compensable-hour and federal work-hour calculations
 - Holiday range results as native `date` values or ISO strings
 - Remaining holiday, workday, and weekend counts
 - OMB regular-method and pay-period-method civilian FTE calculations
@@ -216,6 +217,10 @@ fiscal_status = {
     "MonthNumber": fy.fiscal_month_number( ),
     "QuarterNumber": fy.fiscal_quarter_number( ),
     "WeekNumber": fy.fiscal_week_number( ),
+	"CompensableHoursElapsed": fy.compensable_hours_elapsed( ),
+	"CompensableHoursRemaining": fy.compensable_hours_remaining( ),
+	"WorkHoursElapsed": fy.work_hours_elapsed( ),
+	"WorkHoursRemaining": fy.work_hours_remaining( ),
 }
 
 ```
@@ -318,6 +323,10 @@ summary = {
         start=start_date,
         end=end_date,
     ),
+	"FTE": fy.fte_between(
+		start=start_date,
+		end=end_date,
+	),
 }
 
 ```
@@ -328,6 +337,11 @@ Range operations are inclusive and constrained to the represented fiscal year. A
 consistent with OMB's regular-method denominator. `work_hours_between()` excludes federal holidays
 and therefore represents scheduled operational work hours. Both methods accept a positive
 `hours_per_day` value and return an exact `Decimal` result.
+
+`fte_between()` divides the range's compensable hours by the selected fiscal year's
+`CompensableHours` value. It returns the annual FTE represented by the range, not an annualized rate
+for the shorter period. For example, a full FY 2026 at six hours per compensable weekday returns
+`Decimal("0.75")`.
 
 ```python
 
@@ -461,6 +475,10 @@ FiscalYear(
 - `fiscal_months_remaining()`
 - `fiscal_percent_elapsed()`
 - `fiscal_bounds()`
+- `compensable_hours_elapsed(hours_per_day=8)`
+- `compensable_hours_remaining(hours_per_day=8)`
+- `work_hours_elapsed(hours_per_day=8, use_observed=True)`
+- `work_hours_remaining(hours_per_day=8, use_observed=True)`
 
 ### Fiscal Periods
 
@@ -490,6 +508,7 @@ FiscalYear(
 - `count_workdays(start, end, use_observed=True)`
 - `compensable_hours_between(start, end, hours_per_day=8)`
 - `work_hours_between(start, end, hours_per_day=8, use_observed=True)`
+- `fte_between(start, end, hours_per_day=8)`
 - `holiday_dates_between(start, end, use_observed=True)`
 - `holidays_between(start, end, use_observed=True)`
 - `fiscal_dates()`

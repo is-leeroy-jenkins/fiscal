@@ -15,6 +15,8 @@ Fiscal supports applications that need to:
 - resolve fiscal-month, fiscal-quarter, and fiscal-week boundaries
 - count weekdays, weekends, workdays, and holidays
 - calculate compensable hours and holiday-adjusted work hours between dates
+- calculate the annual FTE represented by an inclusive fiscal-year date range
+- calculate elapsed and remaining compensable or holiday-adjusted work hours
 - calculate civilian FTEs using either OMB method
 - generate text and HTML calendars
 - render calendars for fiscal months, fiscal years, and date ranges
@@ -57,6 +59,18 @@ work_hours = fy.work_hours_between(
     start=date( 2026, 7, 1 ),
     end=date( 2026, 7, 31 ),
 )
+
+range_fte = fy.fte_between(
+    start=date( 2026, 7, 1 ),
+    end=date( 2026, 7, 31 ),
+)
+
+hours_status = {
+    "CompensableElapsed": fy.compensable_hours_elapsed( ),
+    "CompensableRemaining": fy.compensable_hours_remaining( ),
+    "WorkElapsed": fy.work_hours_elapsed( ),
+    "WorkRemaining": fy.work_hours_remaining( ),
+}
 
 fte = FullTimeEquivalent( 2026 )
 print( fte.regular_method( 1044 ) )

@@ -18,7 +18,7 @@ date-normalization helpers live in `fiscal.utilities`, while the FTE model is is
 | Component | Input | Responsibility |
 | --- | --- | --- |
 | `DB` | `config.DB_PATH` and `config.TABLES` | Parameterized SQLite access |
-| `FiscalYear` | `BudgetFiscalYears` row | Period, range, workday, and calendar calculations |
+| `FiscalYear` | `BudgetFiscalYears` row | Period, range, hour, FTE, workday, and calendar calculations |
 | `FederalHoliday` | `FederalHolidays` row | Actual and observed holiday behavior |
 | `FullTimeEquivalent` | Fiscal year and qualifying hours | OMB-compliant civilian FTE arithmetic |
 
@@ -43,7 +43,9 @@ The expected table order is:
 - calendar and fiscal progress
 - fiscal month, quarter, and week boundaries
 - weekday, weekend, holiday, and workday collections
-- date-range counts and holiday mappings
+- date-range day, hour, and annual FTE calculations
+- elapsed and remaining compensable-hour and work-hour calculations
+- holiday mappings
 - text and HTML calendars for months, fiscal years, and date ranges
 
 ## Federal-Holiday Entity
