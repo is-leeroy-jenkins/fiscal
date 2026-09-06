@@ -48,7 +48,7 @@ from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import pandas as pd
 import config as cfg
-from boogr import Error
+from boogr import Error, Logger
 
 __all__: tuple[ str, ... ] = ('DB', 'FederalHoliday', 'FiscalYear', 'throw_if', 'to_date',)
 
@@ -56,7 +56,7 @@ _WEEKDAY_NAMES: Dict[ str, int ] = { 'MONDAY': calendar.MONDAY, 'TUESDAY': calen
 	'WEDNESDAY': calendar.WEDNESDAY, 'THURSDAY': calendar.THURSDAY, 'FRIDAY': calendar.FRIDAY,
 	'SATURDAY': calendar.SATURDAY, 'SUNDAY': calendar.SUNDAY, }
 
-def _weekday_number( value: int | str ) -> int:
+def weekday_number( value: int | str ) -> int:
 	"""Resolve a weekday name or number.
 
 	Purpose:
@@ -305,8 +305,7 @@ class DB( ):
 			with self.create_connection( ) as connection:
 				self.data = pd.read_sql_query( sql, connection, params=parameters )
 			if len( self.data.index ) != 1:
-				raise LookupError(
-					f'Expected one {self.name} row; found {len( self.data.index )}.' )
+				raise LookupError( f'Expected one {self.name} row; found {len( self.data.index )}.')
 			return self.data.copy( )
 		except Exception as e:
 			ex = Error( e )
@@ -378,7 +377,7 @@ class FiscalYear( DB ):
 	range_end: Optional[ date ]
 	use_observed: Optional[ bool ]
 	
-	def __init__( self, fy: str | int, bpoa: str | int='', epoa: str | int ='' ) -> None:
+	def __init__( self, fy: str | int, bpoa: str | int='', epoa: str | int='' ) -> None:
 		"""Initialize a budget fiscal-year entity.
 
 		Purpose:
@@ -944,12 +943,11 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('count_holidays( self, start: date | datetime, end: date | datetime, '
-			             'use_observed: bool = True ) -> int')
+			ex.method = ('count_holidays( self, **kwargs ) -> int')
 			raise ex
 	
 	def count_workdays( self, start: date | datetime, end: date | datetime,
-		use_observed: bool = True ) -> int:
+		use_observed: bool=True ) -> int:
 		"""Count federal workdays in an inclusive fiscal-period range.
 
 		Purpose:
@@ -989,8 +987,7 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('count_workdays( self, start: date | datetime, end: date | datetime, '
-			             'use_observed: bool = True ) -> int')
+			ex.method = ('count_workdays( self, **kwargs ) -> int')
 			raise ex
 	
 	def calendar_bounds( self ) -> Tuple[ date, date ]:
@@ -1126,8 +1123,7 @@ class FiscalYear( DB ):
 
 		Purpose:
 			Maps a one-based federal fiscal-month number to its calendar month and returns the
-			first
-			and final dates of that month within the represented fiscal year.
+			first and final dates of that month within the represented fiscal year.
 
 		Args:
 			fiscal_month (int): Federal fiscal-month number from 1 through 12, where October is 1
@@ -1315,8 +1311,7 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('fiscal_month_html_calendar( self, fiscal_month: int, '
-			             'with_year: bool = True ) -> str')
+			ex.method = 'fiscal_month_html_calendar( self,**kwargs ) -> str'
 			raise ex
 	
 	def fiscal_year_html_calendar( self, width: int = 3 ) -> str:
@@ -1376,24 +1371,22 @@ class FiscalYear( DB ):
 		try:
 			range_start, range_end = self._fiscal_range( start, end )
 			text_calendar = calendar.TextCalendar( firstweekday=calendar.MONDAY )
-			calendar_year = range_start.year
-			calendar_month = range_start.month
+			year = range_start.year
+			month = range_start.month
 			calendars: List[ str ] = [ ]
-			while (calendar_year, calendar_month) <= (range_end.year, range_end.month):
-				calendars.append(
-					text_calendar.formatmonth( calendar_year, calendar_month ).rstrip( ) )
-				if calendar_month == 12:
-					calendar_year += 1
-					calendar_month = 1
+			while (year, month) <= (range_end.year, range_end.month):
+				calendars.append( text_calendar.formatmonth( year, month ).rstrip( ) )
+				if month == 12:
+					year += 1
+					month = 1
 				else:
-					calendar_month += 1
+					month += 1
 			return '\n'.join( calendars ) + '\n'
 		except Exception as e:
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('date_range_text_calendar( self, start: date | datetime, '
-			             'end: date | datetime ) -> str')
+			ex.method = ('date_range_text_calendar( self, **kwargs ) -> str')
 			raise ex
 	
 	def date_range_html_calendar( self, start: date | datetime, end: date | datetime,
@@ -1426,18 +1419,16 @@ class FiscalYear( DB ):
 				raise ValueError( 'Width must be between 1 and 12.' )
 			range_start, range_end = self._fiscal_range( start, end )
 			html_calendar = calendar.HTMLCalendar( firstweekday=calendar.MONDAY )
-			calendar_year = range_start.year
-			calendar_month = range_start.month
+			year = range_start.year
+			month = range_start.month
 			month_tables: List[ str ] = [ ]
-			while (calendar_year, calendar_month) <= (range_end.year, range_end.month):
-				month_tables.append(
-					html_calendar.formatmonth( calendar_year, calendar_month, withyear=with_year
-					) )
-				if calendar_month == 12:
-					calendar_year += 1
-					calendar_month = 1
+			while (year, month) <= (range_end.year, range_end.month):
+				month_tables.append( html_calendar.formatmonth( year, month, withyear=with_year ) )
+				if month == 12:
+					year += 1
+					month = 1
 				else:
-					calendar_month += 1
+					month += 1
 			rows = [ month_tables[ index:index + width ] for index in
 				range( 0, len( month_tables ), width ) ]
 			row_html = [ '<tr>' + ''.join( f'<td>{month}</td>' for month in row ) + '</tr>' for row
@@ -1447,8 +1438,7 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('date_range_html_calendar( self, start: date | datetime, '
-			             'end: date | datetime, width: int = 3, with_year: bool = True ) -> str')
+			ex.method = ('date_range_html_calendar( self, **kwargs ) -> str')
 			raise ex
 	
 	def fiscal_quarter_number( self ) -> int:
@@ -1600,7 +1590,7 @@ class FiscalYear( DB ):
 			int: Number of occurrences of the selected weekday.
 		"""
 		try:
-			requested_weekday = _weekday_number( weekday )
+			requested_weekday = weekday_number( weekday )
 			self.requested_weekday = requested_weekday
 			month_start, month_end = self.fiscal_month_bounds( fiscal_month )
 			count = 0
@@ -1614,8 +1604,7 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('weekday_occurrences( self, fiscal_month: int, weekday: int | str ) -> '
-			             'int')
+			ex.method = 'weekday_occurrences( self, **kwargs ) -> int'
 			raise ex
 	
 	def contains_leap_day( self ) -> bool:
@@ -1701,10 +1690,8 @@ class FiscalYear( DB ):
 
 		Purpose:
 			Calculates seven-day fiscal periods beginning on the represented fiscal-year start
-			date.
-			Dates before the fiscal year return zero and dates after the fiscal year return the
-			final
-			fiscal-week number.
+			date. Dates before the fiscal year return zero and dates after the fiscal year return the
+			final fiscal-week number.
 
 		Returns:
 			int: One-based fiscal-week number, or zero before the represented fiscal year.
@@ -2083,7 +2070,7 @@ class FiscalYear( DB ):
 			ex.method = 'workdays_by_month( self, use_observed: bool = True ) -> Dict[ str, int ]'
 			raise ex
 	
-	def holidays_by_month( self, use_observed: bool = True ) -> Dict[ str, List[ date ] ]:
+	def holidays_by_month( self, use_observed: bool=True ) -> Dict[ str, List[ date ] ]:
 		"""Return federal-holiday dates grouped by fiscal month.
 
 		Purpose:
@@ -2117,8 +2104,7 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('holidays_by_month( self, use_observed: bool = True ) -> '
-			             'Dict[ str, List[ date ] ]')
+			ex.method = ('holidays_by_month( self, **kwargs ) -> Dict[ str, List[ date ] ]')
 			raise ex
 	
 	def holiday_dates_between( self, start: date | datetime, end: date | datetime,
@@ -2158,8 +2144,7 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('holiday_dates_between( self, start: date | datetime, end: date | '
-			             'datetime, use_observed: bool = True ) -> Dict[ str, date ]')
+			ex.method = ('holiday_dates_between( self, **kwargs ) -> Dict[ str, date ]')
 			raise ex
 	
 	def holidays_between( self, start: date | datetime, end: date | datetime,
@@ -2190,8 +2175,7 @@ class FiscalYear( DB ):
 			ex = Error( e )
 			ex.module = 'fiscal'
 			ex.cause = 'FiscalYear'
-			ex.method = ('holidays_between( self, start: date | datetime, end: date | datetime, '
-			             'use_observed: bool = True ) -> Dict[ str, str ]')
+			ex.method = ('holidays_between( self, **kwargs ) -> Dict[ str, str ]')
 			raise ex
 	
 	def holidays_remaining( self, use_observed: bool = True ) -> int:
