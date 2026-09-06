@@ -1,71 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/architecture/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/architecture/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/development/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/development/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/api/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/api/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/api/fiscal/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/api/fiscal/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/user-guide/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/api/fte/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/user-guide/calendar-rendering/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/user-guide/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/user-guide/data-exports/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/user-guide/calendar-rendering/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/user-guide/date-ranges/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/user-guide/data-exports/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/user-guide/federal-holidays/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/user-guide/date-ranges/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/user-guide/fiscal-months/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/user-guide/federal-holidays/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/user-guide/fiscal-quarters/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/user-guide/fiscal-months/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/user-guide/fiscal-weeks/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/user-guide/fiscal-quarters/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/user-guide/fiscal-years/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/user-guide/fiscal-weeks/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/user-guide/installation/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/user-guide/fiscal-years/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/user-guide/progress/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/user-guide/full-time-equivalents/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://is-leeroy-jenkins.github.io/Fiscal/user-guide/workdays-and-weekends/</loc>
-         <lastmod>2026-08-02</lastmod>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/user-guide/installation/</loc>
+         <lastmod>2026-09-06</lastmod>
+    </url>
+    <url>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/user-guide/progress/</loc>
+         <lastmod>2026-09-06</lastmod>
+    </url>
+    <url>
+         <loc>https://is-leeroy-jenkins.github.io/fiscal/user-guide/workdays-and-weekends/</loc>
+         <lastmod>2026-09-06</lastmod>
     </url>
 </urlset>
