@@ -15,8 +15,7 @@ strict: true
 theme:
   name: material
   language: en
-  icon:
-    logo: images/fiscal-logo.png
+  logo: images/fiscal-logo.png
   palette:
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
@@ -125,6 +124,6 @@ extra_css:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/is-leeroy-jenkins/Fiscal
+      link: https://github.com/is-leeroy-jenkins/fiscal
       name: Fiscal on GitHub
   generator: false
