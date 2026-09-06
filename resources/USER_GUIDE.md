@@ -1,4 +1,6 @@
-# Fiscal User Guide
+![](https://github.com/is-leeroy-jenkins/fiscal/blob/master/docs/images/fiscal-userguide.png)
+
+___
 
 Fiscal provides fiscal-year, calendar-year, federal-holiday, workday, weekend, and civilian FTE calculations for use in Python applications and ad-hoc analysis.
 
