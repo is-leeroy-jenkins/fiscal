@@ -351,7 +351,7 @@ class FiscalYear( DB ):
 	range_end: Optional[ date ]
 	use_observed: Optional[ bool ]
 	
-	def __init__( self, fy: str | int, bpoa: str | int = '', epoa: str | int = '' ) -> None:
+	def __init__( self, fy: str | int, bpoa: str | int='', epoa: str | int ='' ) -> None:
 		"""Initialize a budget fiscal-year entity.
 
 		Purpose:
