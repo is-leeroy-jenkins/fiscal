@@ -7,7 +7,7 @@ This guide documents the audited implementation in `fiscal/__init__.py`.
 ## Public Package Contract
 
 ```python
-from fiscal import DB, Error, FederalHoliday, FiscalYear, FullTimeEquivalent, throw_if, to_date, weekday_number
+from fiscal import DB, Error, FederalHoliday, FiscalYear, FullTimeEquivalent, throw_if, to_date, to_decimal, weekday_number
 ```
 
 The audited `__all__` contract exports:
@@ -21,6 +21,7 @@ __all__: tuple[ str, ... ] = (
     "FullTimeEquivalent",
     "throw_if",
     "to_date",
+    "to_decimal",
     "weekday_number",
 )
 ```
@@ -280,6 +281,8 @@ The fiscal-year database record and the calculation date are independent. A date
 - `count_weekends()`
 - `count_holidays()`
 - `count_workdays()`
+- `compensable_hours_between()`
+- `work_hours_between()`
 - `holiday_dates_between()`
 - `holidays_between()`
 

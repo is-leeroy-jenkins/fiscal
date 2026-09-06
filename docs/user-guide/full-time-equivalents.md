@@ -42,6 +42,22 @@ print( calculator.regular_method( 1044 ) )  # Decimal('0.5')
 Fiscal derives the denominator from the calendar rather than limiting calculations to years already
 stored in the SQLite database.
 
+For part of a fiscal year, use the same weekday-based denominator through
+`FiscalYear.compensable_hours_between()`:
+
+```python
+from fiscal import FiscalYear
+
+fiscal_year = FiscalYear( 2026 )
+hours = fiscal_year.compensable_hours_between(
+    start="2026-07-01",
+    end="2026-07-31",
+)
+```
+
+This method includes weekday holidays. Use `FiscalYear.work_hours_between()` when the required result
+is scheduled operational hours after excluding federal holidays.
+
 ## Pay-period method
 
 The pay-period method uses the 26 biweekly pay periods ending in the fiscal year:

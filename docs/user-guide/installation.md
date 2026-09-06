@@ -3,7 +3,14 @@
 ## Install the Package
 
 ```bash
-pip install fiscal
+pip install fiscal-py
+```
+
+The distribution name avoids a collision with the unrelated `fiscal` project already registered on
+PyPI. The installed import package remains `fiscal`:
+
+```python
+import fiscal
 ```
 
 Install the project and its development dependencies from a source checkout:

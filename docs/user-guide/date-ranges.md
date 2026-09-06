@@ -15,6 +15,38 @@ holidays = fy.count_holidays( start_date, end_date )
 workdays = fy.count_workdays( start_date, end_date )
 ```
 
+## Calculate Hours
+
+Calculate OMB compensable hours by counting every Monday-through-Friday date, including federal
+holidays:
+
+```python
+compensable_hours = fy.compensable_hours_between(
+    start=start_date,
+    end=end_date,
+)
+```
+
+Calculate scheduled federal work hours after excluding observed holidays:
+
+```python
+work_hours = fy.work_hours_between(
+    start=start_date,
+    end=end_date,
+)
+```
+
+Both methods default to eight hours per day and return `Decimal`. Supply a different positive daily
+schedule when needed:
+
+```python
+part_time_work_hours = fy.work_hours_between(
+    start=start_date,
+    end=end_date,
+    hours_per_day=6,
+)
+```
+
 ## Return Holiday Dates
 
 Preferred native-date contract:
