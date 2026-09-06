@@ -6,9 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="87d37e75-eef4-4bcf-a5d3-6404f38ad697" name="Changes" comment="update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/boogr.py" beforeDir="false" afterPath="$PROJECT_DIR$/boogr.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stores/sqlite/data.db" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -96,7 +93,7 @@
       <workItem from="1785852240164" duration="14000" />
       <workItem from="1786132950942" duration="648000" />
       <workItem from="1788366781467" duration="3439000" />
-      <workItem from="1788705841471" duration="2790000" />
+      <workItem from="1788705841471" duration="4705000" />
     </task>
     <task id="LOCAL-00001" summary="update">
       <option name="closed" value="true" />
@@ -218,7 +215,15 @@
       <option name="project" value="LOCAL" />
       <updated>1788708525558</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="update">
+      <option name="closed" value="true" />
+      <created>1788709947571</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1788709947571</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
