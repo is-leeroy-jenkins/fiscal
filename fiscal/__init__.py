@@ -53,17 +53,8 @@ from .boogr import Error
 from .fte import FullTimeEquivalent
 from .utilities import throw_if, to_date, to_decimal, weekday_number
 
-__all__: tuple[ str, ... ] = (
-	'DB',
-	'Error',
-	'FederalHoliday',
-	'FiscalYear',
-	'FullTimeEquivalent',
-	'throw_if',
-	'to_date',
-	'to_decimal',
-	'weekday_number',
-)
+__all__: tuple[ str, ... ] = ('DB', 'Error', 'FederalHoliday', 'FiscalYear', 'FullTimeEquivalent',
+                              'throw_if', 'to_date', 'to_decimal', 'weekday_number',)
 
 class DB( ):
 	"""SQLite data-access base class.
